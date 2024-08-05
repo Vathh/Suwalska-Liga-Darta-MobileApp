@@ -6,9 +6,12 @@ import { achievementsReducer } from '../helpers/reducers/achievementsReducer';
 import { initialAchievementsState, setHf, setMax, setOneSeventy, setQf } from '../helpers/reducers/achievementActions';
 import Counter from './Counter';
 import Stats from './Stats';
-import { MATCH_DETAILS_API_URL } from '../helpers/apiConfig';
+import { MATCH_API_URL } from '../helpers/apiConfig';
+import useAuth from '../hooks/useAuth';
 
 const Match = ({ route, navigation }) => {
+
+  const { auth } = useAuth();
 
   const [selectedComponent, setSelectedComponent] = useState('counter');
 
@@ -224,10 +227,11 @@ const Match = ({ route, navigation }) => {
 
   const sendMatchResult = async (matchResultDTO) => {
     try{
-      const response = await fetch(MATCH_DETAILS_API_URL, {
+      const response = await fetch(MATCH_API_URL, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${auth?.accessToken}`
         },
         body: JSON.stringify(matchResultDTO)
       });
@@ -309,7 +313,6 @@ const Match = ({ route, navigation }) => {
 
       sendMatchResult(matchResultDTO);
 
-      console.log(matchResultDTO);
       Alert.alert(
         'MECZ ZAKOŃCZONY',
         `${loser.name} przegrał zatem pozostaje przy tarczy jako liczący.`,

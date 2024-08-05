@@ -1,82 +1,77 @@
-import React, { useEffect, useState } from 'react'
-import { Button, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
-import { MATCH_ACTIVE_API_URL } from '../helpers/apiConfig'
+import React, { useState } from 'react'
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { AUTHENTICATE_API_URL } from '../helpers/apiConfig';
+import useAuth from '../hooks/useAuth';
 
-const Home = ({ navigation }) => {
-  const [matches, setMatches] = useState([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState(null);
+const Home = () => {
 
-  const toggleModal = () => {
-    setIsModalVisible(isModalVisible => !isModalVisible);
+  const { setAuth } = useAuth();
+
+  const [userName, setUserName] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const userDTO = {
+        userName: userName,
+        password: password
+      }
+
+      const response = await fetch(AUTHENTICATE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+        body: JSON.stringify(userDTO)
+      });
+      let data = await response.json();
+      
+      const accessToken = data?.accessToken;
+      const role = data?.role;
+
+      setAuth({ userName, role, accessToken });
+      setUserName('');
+      setPassword('');    
+    } catch (err) {
+      if(!err?.response){
+        setErrorMsg('Nazwa użytkownika lub hasło jest nieprawidłowe');
+      } else if(err.response?.status === 400){
+        setErrorMsg('Missing Username or Password');
+      } else if(err.response?.status === 401){
+        setErrorMsg('Unauthorized');
+      } else {
+        setErrorMsg('Login Failed');
+      }
+    } 
   }
-
-  const handleMatchSelection = (match) => {
-    setSelectedMatch(match);
-    toggleModal();
-  }
-
-  const fetchMatches = async () => {
-    try{
-      const response = await fetch(MATCH_ACTIVE_API_URL);
-      const matches = await response.json();
-      setMatches(matches);
-    } catch (error) {
-      console.log(error.message);
-    }
-  }
-
-  const renderMatches = () => {
-    return matches.map(match => {
-      return <Pressable key={match.matchId} style={styles.matchContainer} onPress={() => handleMatchSelection(match)}>
-              <View style={styles.match}>
-                <Text style={styles.playerName}>{match.playerA.name}</Text>
-                <Text style={styles.vs}>VS</Text>
-                <Text style={styles.playerName}>{match.playerB.name}</Text>
-              </View>
-            </Pressable>
-    })
-  }
-
-  const matchPressHandler = (match) => {
-    toggleModal();
-    navigation.navigate('Match', {match: {match}});
-  };
-
-  useEffect(() => {
-    fetchMatches();
-  }, [])
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Mecze do rozegrania</Text>
-      <View style={styles.matchesContainer}>
-        {matches.length ? renderMatches() : <Text style={styles.noMatchesText}>Brak aktywnych meczy</Text>}
+      <Text style={styles.title}>Zaloguj się</Text>
+      <View style={styles.form}>
+        <Text style={styles.errorMessage}>{errorMsg}</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder='Nazwa użytkownika' 
+          value={userName} 
+          onChangeText={text => setUserName(text)} 
+          autoCorrect={false} 
+          autoCapitalize='none'/>
+        <TextInput 
+          style={styles.input} 
+          placeholder='Hasło' 
+          value={password} 
+          onChangeText={text => setPassword(text)} 
+          autoCorrect={false} 
+          autoCapitalize='none'/>
+        <Pressable style={styles.button} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>Zaloguj</Text>
+        </Pressable>
       </View>
-
-      <Modal 
-        visible={isModalVisible}
-        animationType='slide'
-      >
-        {selectedMatch && 
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalText}>Czy na pewno chcesz rozpocząć ten mecz?</Text>
-            <View style={styles.modalPlayersContainer}>
-              <Text style={styles.modalPlayerName}>{selectedMatch.playerA.name}</Text>
-              <Text style={styles.modalVS}>VS</Text>
-              <Text style={styles.modalPlayerName}>{selectedMatch.playerB.name}</Text>
-            </View>
-            <View style={styles.modalBtnsContainer}>
-              <Pressable style={styles.modalBtn} onPress={toggleModal}>
-                <Text style={styles.modalBtnText}>Anuluj</Text>
-              </Pressable>
-              <Pressable style={styles.modalBtn} onPress={() => matchPressHandler(selectedMatch)}>
-                <Text style={styles.modalBtnText}>Tak</Text>
-              </Pressable>
-            </View>
-          </View>
-        }
-      </Modal>
     </View>
   )
 }
@@ -85,101 +80,46 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#363062',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  header: {
-    flex: 1,
-    color: '#f5f5f5',
-    fontSize: 22,
-    marginTop: 20
-  },
-  matchesContainer: {
-    flex: 7,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginLeft: 15,
-    marginRight: 15
-  },
-  matchContainer: {
-    height: 70,
-    width: 100,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,.3)',
-    justifyContent: 'center',
-    alignItems: 'center',    
-    marginTop: 15,    
-  },
-  match: {    
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playerName: {
-    color: '#f5f5f5',
-  },
-  vs: {
-    color: '#F99417'
-  },
-  noMatchesText: {
-    color: '#c5c5c5',
-    fontSize: 26
-  },
-  modalContainer:{
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#363062',
-  },
-  modalText: {
-    color: '#c5c5c5',
-    marginRight: 50,
-    marginLeft: 50,
-    marginBottom: 30,
-    fontSize: 20,
-    textAlign: 'center'
-  },
-  modalPlayersContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 50
-  },
-  modalPlayerName: {
-    fontSize: 22,
-    flex: 1,
-    textAlign: 'center',
-    color: '#c5c5c5',
-    fontWeight: 'bold'
-  },
-  modalVS: {
-    fontSize: 20,
-    color: '#F99417'
-  },
-  modalBtnsContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingRight: 50,
-    paddingLeft: 50,
-  },
-  modalBtn: {
-    width: 90,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,.3)',
-    justifyContent: 'center',
     alignItems: 'center'
   },
-  modalBtnText: {
+  title: {
+    fontSize: 24,
     color: '#c5c5c5',
-    paddingTop: 10,
-    paddingBottom: 10,
-    paddingLeft: 15,
-    paddingRight: 15,
-    fontSize: 18
+    marginBottom: 70,
+    marginTop: 100
+  },
+  form: {
+    alignItems: 'center'
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#ff1e1e',
+    marginBottom: 20
+  },
+  input: {
+    marginBottom: 20,
+    color: '#363062',
+    backgroundColor:  '#f5f5f5cc',
+    borderRadius: 5,
+    width: 200,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    fontSize: 16
+    },
+  button: {
+    alignItems: 'center',
+    marginTop: 20,
+    // marginHorizontal: 'auto',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    backgroundColor:  '#f5f5f5cc',
+    borderRadius: 5
+  },
+  buttonText: {
+    color: '#363062',
   }
-});
+})
+
 export default Home
