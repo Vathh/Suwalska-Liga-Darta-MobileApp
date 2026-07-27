@@ -4,7 +4,6 @@ import { useFocusEffect } from '@react-navigation/native'
 import useAuth from '../../hooks/useAuth'
 import {
 	buildGameScoringParamsFromActiveMatch,
-	clearActiveFfaLobby,
 	resolveActiveFfaMatch,
 } from '../../helpers/activeQuickGameMatch'
 import { postFfaPresence } from '../../helpers/quickGameFfaApi'
@@ -96,7 +95,6 @@ const Home = ({ navigation }) => {
           } catch {
             // i tak czyścimy lokalny stan — użytkownik chce wyjść
           }
-          await clearActiveFfaLobby()
           setActiveMatch(null)
           setLeavingMatch(false)
         },

@@ -3,6 +3,8 @@ import {
 	getQuickGameFfaUndoUrl,
 	getQuickGameFfaVisitUrl,
 	getQuickGameFfaPresenceUrl,
+	getQuickGameFfaCricketDartUrl,
+	getQuickGameFfaCricketUndoUrl,
 	QUICK_GAME_LOBBY_ACTIVE_MATCH_URL,
 } from './apiConfig';
 
@@ -11,6 +13,8 @@ export {
 	getQuickGameFfaVisitUrl,
 	getQuickGameFfaUndoUrl,
 	getQuickGameFfaPresenceUrl,
+	getQuickGameFfaCricketDartUrl,
+	getQuickGameFfaCricketUndoUrl,
 	QUICK_GAME_LOBBY_ACTIVE_MATCH_URL,
 };
 
@@ -74,6 +78,38 @@ export async function postFfaPresence(lobbyId, accessToken, status) {
 	const data = await res.json();
 	if (!res.ok) {
 		throw new Error(data?.message || 'Nie udało się zaktualizować obecności');
+	}
+	return data;
+}
+
+export async function recordFfaCricketDart(lobbyId, accessToken, payload) {
+	const res = await fetch(getQuickGameFfaCricketDartUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+		body: JSON.stringify(payload),
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się zapisać rzutu');
+	}
+	return data;
+}
+
+export async function undoFfaCricketDart(lobbyId, accessToken) {
+	const res = await fetch(getQuickGameFfaCricketUndoUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się cofnąć rzutu');
 	}
 	return data;
 }

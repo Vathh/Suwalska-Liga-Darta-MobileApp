@@ -43,7 +43,12 @@ const MAX_LOBBY_PLAYERS = 8;
 const playerKey = (item, index) =>
   String(item.id ?? item.playerId ?? item.player_id ?? item.tempName ?? index);
 
-const normalizeLobbyGameType = (_value) => 'x01';
+const normalizeLobbyGameType = (value) => {
+  const raw = String(value ?? 'x01').toLowerCase();
+  if (raw === 'cricket') return 'cricket';
+  if (raw === '501') return 'x01';
+  return 'x01';
+};
 
 const SCORING_MODES = { ONE_DEVICE: 'one_device', EACH_OWN: 'each_own' };
 
@@ -55,7 +60,7 @@ const INVITATION_STATUS = {
 
 const QuickGameLobby = ({ navigation, route }) => {
   const { auth } = useAuth();
-  const GAME_TYPES = { X01: 'x01' };
+  const GAME_TYPES = { X01: 'x01', CRICKET: 'cricket' };
   const [lobby, setLobby] = useState(null);
   const [matchFormat, setMatchFormat] = useState(DEFAULT_MATCH_FORMAT);
   const [gameType, setGameType] = useState(GAME_TYPES.X01);
@@ -96,8 +101,11 @@ const QuickGameLobby = ({ navigation, route }) => {
         name: p.name ?? p.tempName ?? 'Gracz',
         playerId: p.playerId ?? p.player_id,
       }));
-      const format = normalizeMatchFormat(data.matchFormat);
       const gameTypeToUse = normalizeLobbyGameType(data.gameType ?? data.game_type);
+      const format = normalizeMatchFormat({
+        ...data.matchFormat,
+        gameType: gameTypeToUse,
+      });
       const scoringModeToUse = data.scoringMode ?? SCORING_MODES.EACH_OWN;
       const isHost = data.youAreHost ?? lobby?.youAreHost ?? false;
       const myPlayerIndex = resolveMyPlayerIndex(players, data.myPlayerIndex);
@@ -125,7 +133,14 @@ const QuickGameLobby = ({ navigation, route }) => {
       scoringMode: data.scoringMode ?? prev?.scoringMode ?? SCORING_MODES.EACH_OWN,
     }));
     if (data.matchFormat != null) {
-      setMatchFormat(normalizeMatchFormat(data.matchFormat));
+      setMatchFormat(
+        normalizeMatchFormat({
+          ...data.matchFormat,
+          gameType: normalizeLobbyGameType(
+            data.gameType ?? data.game_type ?? data.matchFormat.gameType,
+          ),
+        }),
+      );
     }
     if (data.scoringMode != null) setScoringMode(data.scoringMode);
     if (data.gameType != null || data.game_type != null) {
@@ -394,7 +409,10 @@ const QuickGameLobby = ({ navigation, route }) => {
           Authorization: `Bearer ${auth.accessToken}`,
         },
         body: JSON.stringify({
-          matchFormat,
+          matchFormat: normalizeMatchFormat({
+            ...matchFormat,
+            gameType: gameType ?? lobby?.gameType ?? GAME_TYPES.X01,
+          }),
           gameType: gameType ?? lobby?.gameType ?? GAME_TYPES.X01,
           scoringMode: scoringMode ?? lobby?.scoringMode ?? SCORING_MODES.EACH_OWN,
           playerOrder: (orderedPlayers.length ? orderedPlayers : (lobby?.players || []))
@@ -404,15 +422,21 @@ const QuickGameLobby = ({ navigation, route }) => {
       });
       const data = await res.json();
       if (res.ok && data?.players) {
-        const format = normalizeMatchFormat(data.matchFormat ?? matchFormat);
+        const gameTypeToUse = normalizeLobbyGameType(
+          data.gameType ?? gameType ?? lobby?.gameType ?? GAME_TYPES.X01,
+        );
+        const format = normalizeMatchFormat({
+          ...(data.matchFormat ?? matchFormat),
+          gameType: gameTypeToUse,
+        });
         await savePersistedMatchFormat('quickGame', format);
-        const gameTypeToUse = data.gameType ?? gameType ?? lobby?.gameType ?? GAME_TYPES.X01;
         const toPass = (orderedPlayers.length ? orderedPlayers : data.players).map((p) => ({
           id: p.id,
           name: p.name ?? p.tempName ?? 'Gracz',
           playerId: p.playerId ?? p.player_id,
         }));
-        const scoringModeToUse = data.scoringMode ?? scoringMode ?? lobby?.scoringMode ?? SCORING_MODES.EACH_OWN;
+        const scoringModeToUse =
+          data.scoringMode ?? scoringMode ?? lobby?.scoringMode ?? SCORING_MODES.EACH_OWN;
         const isHost = data.isHost ?? lobby?.youAreHost ?? false;
         const myPlayerIndex = resolveMyPlayerIndex(toPass, data.myPlayerIndex);
         setLobby(null);
@@ -479,23 +503,56 @@ const QuickGameLobby = ({ navigation, route }) => {
               onPress={() => {
                 if (isHost) {
                   setGameType(GAME_TYPES.X01);
-                  handleUpdateSettings({ gameType: GAME_TYPES.X01 });
+                  const next = normalizeMatchFormat({ ...matchFormat, gameType: GAME_TYPES.X01 });
+                  setMatchFormat(next);
+                  handleUpdateSettings({ gameType: GAME_TYPES.X01, matchFormat: next });
                 }
               }}
               disabled={!isHost}
             >
               <Text style={[styles.gameTypeBtnText, gameType === GAME_TYPES.X01 && styles.gameTypeBtnTextActive]}>501</Text>
             </Pressable>
+            <Pressable
+              style={[styles.gameTypeBtn, gameType === GAME_TYPES.CRICKET && styles.gameTypeBtnActive]}
+              onPress={() => {
+                if (isHost) {
+                  setGameType(GAME_TYPES.CRICKET);
+                  const next = normalizeMatchFormat({
+                    ...matchFormat,
+                    gameType: GAME_TYPES.CRICKET,
+                    setsToWinMatch: 1,
+                  });
+                  setMatchFormat(next);
+                  handleUpdateSettings({
+                    gameType: GAME_TYPES.CRICKET,
+                    matchFormat: next,
+                  });
+                }
+              }}
+              disabled={!isHost}
+            >
+              <Text style={[styles.gameTypeBtnText, gameType === GAME_TYPES.CRICKET && styles.gameTypeBtnTextActive]}>Cricket</Text>
+            </Pressable>
           </View>
+          {gameType === GAME_TYPES.CRICKET ? (
+            <Text style={styles.hintSmall}>
+              Cricket: standard scoring, tylko legi (bez setów). Działa na 1 urządzeniu i każdy na swoim.
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.section}>
           {isHost ? (
             <MatchFormatPicker
               value={matchFormat}
+              allowCricket={false}
               onChange={(next) => {
-                setMatchFormat(next);
-                handleUpdateSettings({ matchFormat: next });
+                const withType = normalizeMatchFormat({
+                  ...next,
+                  gameType: gameType === GAME_TYPES.CRICKET ? GAME_TYPES.CRICKET : GAME_TYPES.X01,
+                });
+                setMatchFormat(withType);
+                handleUpdateSettings({ matchFormat: withType, gameType: withType.gameType });
               }}
             />
           ) : (

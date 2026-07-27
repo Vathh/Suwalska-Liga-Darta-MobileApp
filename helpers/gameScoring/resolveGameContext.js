@@ -5,6 +5,7 @@ import {
 } from '../apiConfig';
 import { normalizeTournamentPlayers } from '../normalizeTournamentPlayers';
 import { createFfaTransport } from './transports/createFfaTransport.js';
+import { createFfaCricketTransport } from './transports/createFfaCricketTransport.js';
 import { createTournamentTransport } from './transports/createTournamentTransport.js';
 
 export const GAME_MODE = {
@@ -76,12 +77,23 @@ export function resolveGameContext(routeParams, auth) {
 	const N = Math.min(Math.max(players.length, 2), 8);
 	const myPlayerIndex = resolveMyPlayerIndex(matchConfig, auth, players);
 
+	const resolvedGameType = String(
+		matchFormat?.gameType
+			?? quickGame?.gameType
+			?? trainingGame?.gameType
+			?? 'x01',
+	).toLowerCase();
+	const isCricket = resolvedGameType === 'cricket';
+
 	const hasOnlineQuick =
 		isQuick &&
 		!!lobbyId &&
+		!isCricket &&
 		(quickGame?.gameType === '501'
 			|| quickGame?.gameType === 'x01'
-			|| quickGame?.gameType === undefined);
+			|| quickGame?.gameType === undefined
+			|| resolvedGameType === 'x01');
+	const hasOnlineCricket = isQuick && !!lobbyId && isCricket;
 	const accessToken = auth?.accessToken ?? null;
 
 	let transport = null;
@@ -101,6 +113,15 @@ export function resolveGameContext(routeParams, auth) {
 			gameId: tournamentGame.id,
 		});
 		reloadKey = tournamentGame.id;
+	} else if (hasOnlineCricket && accessToken) {
+		transport = createFfaCricketTransport({
+			lobbyId,
+			accessToken,
+			lobbyScoringMode,
+			isHost,
+			myPlayerIndexFromLobby: myPlayerIndex,
+		});
+		reloadKey = lobbyId;
 	} else if (hasOnlineQuick && accessToken) {
 		transport = createFfaTransport({
 			lobbyId,
@@ -113,7 +134,6 @@ export function resolveGameContext(routeParams, auth) {
 	}
 
 	const syncEnabled = transport != null;
-	const isLocal = mode === GAME_MODE.TRAINING;
 	const showStartModal = isTraining || (isQuick && !syncEnabled);
 
 	const activeGame = isTraining
@@ -129,7 +149,6 @@ export function resolveGameContext(routeParams, auth) {
 
 	return {
 		mode,
-		isLocal,
 		syncEnabled,
 		showStartModal,
 		players,

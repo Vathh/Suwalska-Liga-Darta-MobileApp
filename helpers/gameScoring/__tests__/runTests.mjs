@@ -1,3 +1,4 @@
+import { runCricketTests } from '../../cricket/__tests__/cricketRules.test.js';
 import { applyGameScoringState } from '../applyGameScoringState.js';
 import {
 	computeFfaStateRevision,
@@ -498,6 +499,7 @@ const tests = [
 	['unified API payload', testUnifiedApiPayload],
 	['per-dart bust rules', testPerDartBustRules],
 	['offline multi-set scoring', testMatchFormatOfflineScoring],
+	['cricket rules', runCricketTests],
 ];
 
 let passed = 0;

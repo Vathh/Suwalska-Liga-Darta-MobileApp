@@ -1,6 +1,5 @@
 export const SYNC_FROM_SERVER = 'SYNC_FROM_SERVER';
 export const UPDATE_STATS = 'UPDATE_STATS';
-export const UPDATE_SINGLE_DART = 'UPDATE_SINGLE_DART';
 export const APPEND_DART_LABEL = 'APPEND_DART_LABEL';
 export const POP_DART_LABEL = 'POP_DART_LABEL';
 export const RESET_VISIT_DART_LABELS = 'RESET_VISIT_DART_LABELS';
@@ -48,12 +47,6 @@ export const syncFromServer = ({
 export const updateStats = (points) => ({
   type: UPDATE_STATS,
   points: points
-});
-
-export const updateSingleDart = (points, label = null) => ({
-  type: UPDATE_SINGLE_DART,
-  points,
-  label,
 });
 
 export const appendDartLabel = (label) => ({
@@ -129,6 +122,3 @@ export function createInitialPlayerResultState(startingScore = 501) {
     lastVisitDartLabels: [],
   };
 }
-
-/** @deprecated prefer createInitialPlayerResultState */
-export const initialPlayerResultState = createInitialPlayerResultState();

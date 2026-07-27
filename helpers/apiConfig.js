@@ -234,6 +234,14 @@ export const getQuickGameFfaUndoUrl = (lobbyId) =>
 	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/visits/undo';
 export const getQuickGameFfaPresenceUrl = (lobbyId) =>
 	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/presence';
+export const getQuickGameFfaCricketDartUrl = (lobbyId) =>
+	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/cricket/darts';
+export const getQuickGameFfaCricketUndoUrl = (lobbyId) =>
+	API_BASE_URL +
+	QUICK_GAME_LOBBY_PREFIX +
+	'/' +
+	lobbyId +
+	'/ffa/cricket/darts/undo';
 export const QUICK_GAME_LOBBY_ACTIVE_MATCH_URL =
 	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/active-match';
 

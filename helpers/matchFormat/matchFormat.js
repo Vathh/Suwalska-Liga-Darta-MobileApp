@@ -10,11 +10,25 @@ export const STARTING_SCORE_OPTIONS = [
 	101, 201, 301, 401, 501, 601, 701, 801, 901, 1001,
 ];
 
+export const GAME_TYPE_X01 = 'x01';
+export const GAME_TYPE_CRICKET = 'cricket';
+
+export function isCricketFormat(format) {
+	return String(format?.gameType ?? '').toLowerCase() === GAME_TYPE_CRICKET;
+}
+
 export function normalizeMatchFormat(input) {
 	const base = { ...DEFAULT_MATCH_FORMAT };
 	if (!input || typeof input !== 'object') {
 		return base;
 	}
+
+	let gameType = String(input.gameType ?? input.game_type ?? base.gameType);
+	if (gameType === '501') {
+		gameType = GAME_TYPE_X01;
+	}
+
+	const isCricket = gameType === GAME_TYPE_CRICKET;
 
 	return {
 		startingScore: Number(
@@ -25,10 +39,13 @@ export function normalizeMatchFormat(input) {
 				?? input.legs_to_win_set
 				?? base.legsToWinSet,
 		),
-		setsToWinMatch: Number(
-			input.setsToWinMatch ?? input.sets_to_win_match ?? base.setsToWinMatch,
-		),
-		gameType: String(input.gameType ?? input.game_type ?? base.gameType),
+		// Cricket: tylko legi, bez setów.
+		setsToWinMatch: isCricket
+			? 1
+			: Number(
+				input.setsToWinMatch ?? input.sets_to_win_match ?? base.setsToWinMatch,
+			),
+		gameType,
 		outRule: String(input.outRule ?? input.out_rule ?? base.outRule),
 	};
 }
@@ -39,6 +56,9 @@ export function isSingleSetFormat(format) {
 
 export function formatMatchLabel(format) {
 	const f = normalizeMatchFormat(format);
+	if (isCricketFormat(f)) {
+		return `Cricket · do ${f.legsToWinSet} legów`;
+	}
 	if (isSingleSetFormat(f)) {
 		return `${f.startingScore} · do ${f.legsToWinSet} legów`;
 	}

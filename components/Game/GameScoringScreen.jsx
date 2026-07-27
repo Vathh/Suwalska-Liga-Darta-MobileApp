@@ -63,11 +63,10 @@ import { releaseTournamentGame } from '../../helpers/lockTournamentGame';
 import { computeNextLegOpener } from '../../helpers/computeNextLegOpener';
 import { evaluatePerDartVisitAfterDart } from '../../helpers/perDartVisitRules';
 import { postFfaPresence } from '../../helpers/quickGameFfaApi';
-import {
-	clearActiveFfaLobby,
-} from '../../helpers/activeQuickGameMatch';
 import { buildFfaPresenceBannerMessages } from '../../helpers/ffaPresenceMessages';
 import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
+import { isCricketGameType } from '../../helpers/cricket';
+import CricketGameScoringScreen from './CricketGameScoringScreen';
 
 const GameScoringScreen = ({ route, navigation }) => {
 	const { auth, setAuth } = useAuth();
@@ -87,7 +86,6 @@ const GameScoringScreen = ({ route, navigation }) => {
 	);
 	const {
 		mode,
-		isLocal,
 		syncEnabled,
 		showStartModal,
 		players,
@@ -739,6 +737,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		popDartHistory,
 		handleMaxAndOneSeventy,
 		handleHf,
+		handleQf,
 		getCheckoutPrompt,
 		openCheckoutDartModal,
 		getGameScoring: () => gameScoring,
@@ -980,10 +979,16 @@ const GameScoringScreen = ({ route, navigation }) => {
 				openCheckoutDartModal(idx, score, visitOpts);
 				return;
 			}
+			const player = players[idx];
+			const darts = checkoutDart ?? 3;
+			if (player?.playerId) {
+				const dartsThrownBefore = playerStates[idx]?.dartsThrown ?? 0;
+				handleQf(player, dartsThrownBefore + darts);
+			}
 			void gameScoring.closeLegWithWinner(
 				idx,
 				score,
-				checkoutDart ?? 3,
+				darts,
 				visitOpts,
 			);
 			return;
@@ -1017,6 +1022,11 @@ const GameScoringScreen = ({ route, navigation }) => {
 				...(pending.visitOpts ?? {}),
 				legId: pending.legId ?? null,
 			};
+			const player = players[idx];
+			if (player?.playerId) {
+				const dartsThrownBefore = playerStates[idx]?.dartsThrown ?? 0;
+				handleQf(player, dartsThrownBefore + dartNumber);
+			}
 			try {
 				await gameScoring.closeLegWithWinner(
 					idx,
@@ -1142,7 +1152,6 @@ const GameScoringScreen = ({ route, navigation }) => {
 								} catch {
 									// Wyjście z ekranu i tak dozwolone
 								}
-								await clearActiveFfaLobby();
 							}
 							navigation.dispatch(e.data.action);
 						},
@@ -1272,4 +1281,17 @@ const GameScoringScreen = ({ route, navigation }) => {
 	);
 };
 
-export default GameScoringScreen;
+function GameScoringScreenRouter({ route, navigation }) {
+	const { auth } = useAuth();
+	const gameCtx = useMemo(
+		() => resolveGameContext(route.params, auth),
+		[route.params, auth],
+	);
+	const format = normalizeMatchFormat(gameCtx.matchFormat);
+	if (isCricketGameType(format.gameType)) {
+		return <CricketGameScoringScreen route={route} navigation={navigation} />;
+	}
+	return <GameScoringScreen route={route} navigation={navigation} />;
+}
+
+export default GameScoringScreenRouter;

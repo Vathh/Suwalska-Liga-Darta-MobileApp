@@ -27,6 +27,7 @@ export function createOnlineVisitFlow(deps) {
 		popDartHistory,
 		handleMaxAndOneSeventy,
 		handleHf,
+		handleQf,
 		getCheckoutPrompt,
 		openCheckoutDartModal,
 		getGameScoring,
@@ -35,6 +36,12 @@ export function createOnlineVisitFlow(deps) {
 		endScoringBusy,
 	} = deps;
 
+	const recordQfIfNeeded = (player, idx, checkoutDarts) => {
+		if (!player || !handleQf) return;
+		const dartsThrownBefore =
+			getPlayerStatesRef().current[idx]?.dartsThrown ?? 0;
+		handleQf(player, dartsThrownBefore + checkoutDarts);
+	};
 	const submitOnlineVisitCore = async (resultToApply, dartsInVisit = 3) => {
 		if (getGameClosed() || !getSyncEnabled()) return false;
 		const idx = currentPlayerIndexRef.current;
@@ -86,6 +93,7 @@ export function createOnlineVisitFlow(deps) {
 									handleHf(resultToApply, player);
 								}
 								if (isPerDartMode()) {
+									recordQfIfNeeded(player, idx, dartsInVisit);
 									await getGameScoring().closeLegWithWinner(
 										idx,
 										resultToApply,
@@ -183,6 +191,7 @@ export function createOnlineVisitFlow(deps) {
 							if (resultToApply >= 100) {
 								handleHf(resultToApply, player);
 							}
+							recordQfIfNeeded(player, idx, dartsInVisit);
 							await getGameScoring().closeLegWithWinner(
 								idx,
 								resultToApply,

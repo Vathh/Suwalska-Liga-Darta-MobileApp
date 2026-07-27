@@ -1,10 +1,6 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { postFfaPresence } from '../helpers/quickGameFfaApi';
-import {
-	clearActiveFfaLobby,
-	saveActiveFfaLobby,
-} from '../helpers/activeQuickGameMatch';
 import { GAME_MODE } from '../helpers/gameScoring/resolveGameContext';
 
 /**
@@ -41,7 +37,6 @@ export function useFfaPresenceHeartbeat({
 			}
 		};
 
-		saveActiveFfaLobby(lobbyId);
 		sendPresence('connected');
 
 		const heartbeat = setInterval(() => sendPresence('connected'), 30000);
@@ -63,10 +58,4 @@ export function useFfaPresenceHeartbeat({
 			}
 		};
 	}, [mode, syncEnabled, lobbyId, accessToken, gameClosed, intentionalFfaLeaveRef]);
-
-	useEffect(() => {
-		if (gameClosed && mode === GAME_MODE.QUICK_FFA) {
-			clearActiveFfaLobby();
-		}
-	}, [gameClosed, mode]);
 }

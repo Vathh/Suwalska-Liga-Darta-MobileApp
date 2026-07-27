@@ -4,6 +4,14 @@ import { colors } from '../../theme/colors';
 
 const CRICKET_SEGMENTS = [20, 19, 18, 17, 16, 15, 'bull'];
 
+/** Wyższe wiersze przy mniejszej liczbie graczy. */
+function rowHeightForPlayerCount(n) {
+  if (n <= 2) return 56;
+  if (n <= 4) return 48;
+  if (n <= 6) return 40;
+  return 34;
+}
+
 const CricketCounter = ({
   players,
   cricketStates,
@@ -15,6 +23,7 @@ const CricketCounter = ({
   gameClosed = false,
 }) => {
   const N = players?.length ?? 0;
+  const rowHeight = rowHeightForPlayerCount(N);
   const [modifier, setModifier] = useState(null);
 
   const isSegmentClosedByAll = (seg) => {
@@ -51,22 +60,48 @@ const CricketCounter = ({
         <View style={styles.table}>
           <View style={styles.tableCols}>
             <View style={[styles.col, styles.colName]}>
-              <View style={[styles.cell, styles.cellName, styles.cellHeader]}><Text style={styles.headerText}>Gracz</Text></View>
-              {players.slice(0, N).map((p, i) => (
-                <View key={i} style={[styles.cell, styles.cellName, i === currentPlayerIndex && styles.cellActive]}>
-                  <Text style={styles.cellText} numberOfLines={1} ellipsizeMode="tail">{p?.name ?? 'Gracz'}</Text>
-                </View>
-              ))}
+              <View style={[styles.cell, styles.cellName, styles.cellHeader, { minHeight: rowHeight }]}>
+                <Text style={styles.headerText}>Gracz</Text>
+              </View>
+              {players.slice(0, N).map((p, i) => {
+                const legs = cricketStates[i]?.legsWon ?? 0;
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.cell,
+                      styles.cellName,
+                      { minHeight: rowHeight },
+                      i === currentPlayerIndex && styles.cellActive,
+                    ]}
+                  >
+                    <Text style={styles.cellText} numberOfLines={1} ellipsizeMode="tail">
+                      {p?.name ?? 'Gracz'}
+                      <Text style={styles.legsInline}> ({legs})</Text>
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
             {CRICKET_SEGMENTS.map((seg) => (
               <View key={seg} style={[styles.col, seg === 'bull' ? styles.colBull : styles.colSegment]}>
-                <View style={[styles.cell, styles.cellCenter, styles.cellHeader]}><Text style={styles.headerText}>{seg === 'bull' ? 'Bull' : seg}</Text></View>
+                <View style={[styles.cell, styles.cellCenter, styles.cellHeader, { minHeight: rowHeight }]}>
+                  <Text style={styles.headerText}>{seg === 'bull' ? 'Bull' : seg}</Text>
+                </View>
                 {players.slice(0, N).map((p, i) => {
                   const h = (cricketStates[i]?.hits?.[seg] ?? 0);
                   const closed = h >= 3;
                   const symbol = h === 0 ? '–' : h === 1 ? '\\' : h === 2 ? '×' : '●';
                   return (
-                    <View key={i} style={[styles.cell, styles.cellCenter, i === currentPlayerIndex && styles.cellActive]}>
+                    <View
+                      key={i}
+                      style={[
+                        styles.cell,
+                        styles.cellCenter,
+                        { minHeight: rowHeight },
+                        i === currentPlayerIndex && styles.cellActive,
+                      ]}
+                    >
                       <Text style={[styles.cellText, styles.hitSymbol, closed && styles.hitClosed]}>{symbol}</Text>
                     </View>
                   );
@@ -74,9 +109,19 @@ const CricketCounter = ({
               </View>
             ))}
             <View style={[styles.col, styles.colPts]}>
-              <View style={[styles.cell, styles.cellCenter, styles.cellHeader]}><Text style={styles.headerText}>Pkt</Text></View>
+              <View style={[styles.cell, styles.cellCenter, styles.cellHeader, { minHeight: rowHeight }]}>
+                <Text style={styles.headerText}>Pkt</Text>
+              </View>
               {players.slice(0, N).map((p, i) => (
-                <View key={i} style={[styles.cell, styles.cellCenter, i === currentPlayerIndex && styles.cellActive]}>
+                <View
+                  key={i}
+                  style={[
+                    styles.cell,
+                    styles.cellCenter,
+                    { minHeight: rowHeight },
+                    i === currentPlayerIndex && styles.cellActive,
+                  ]}
+                >
                   <Text style={[styles.cellText, styles.ptsText]}>{cricketStates[i]?.points ?? 0}</Text>
                 </View>
               ))}
@@ -154,7 +199,7 @@ const CricketCounter = ({
   );
 };
 
-const COL_NAME = 90;
+const COL_NAME = 110;
 const COL_SEGMENT = 34;
 const COL_BULL = 38;
 const COL_PTS = 42;
@@ -203,7 +248,6 @@ const styles = StyleSheet.create({
   colBull: { width: COL_BULL, flex: 0 },
   colPts: { width: COL_PTS, flex: 0 },
   cell: {
-    minHeight: 28,
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderRightWidth: 1,
@@ -230,6 +274,10 @@ const styles = StyleSheet.create({
   cellText: {
     color: colors.textSecondary,
     fontSize: 15,
+  },
+  legsInline: {
+    color: colors.accent,
+    fontWeight: '700',
   },
   hitSymbol: {
     fontSize: 18,
