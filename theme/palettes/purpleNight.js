@@ -39,7 +39,7 @@ export default {
 	textFaint: '#888888',
 	textDisabled: '#888888',
 	textVeryDim: '#6B6B6B',
-	placeholder: '#999999',
+	placeholder: '#A1A1AA',
 
 	onAccent: '#363062',
 	onAccentHint: 'rgba(54,48,98,0.7)',

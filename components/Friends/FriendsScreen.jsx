@@ -212,9 +212,19 @@ const FriendsScreen = ({ navigation }) => {
         friends.map((f) => {
           const name = f.name ?? f.playerName ?? f.player?.name ?? 'Znajomy';
           const key = f.id ?? f.playerId ?? f.player_id;
+          const playerId = f.playerId ?? f.player_id;
           return (
             <View key={key} style={styles.row}>
-              <Text style={styles.rowText}>{name}</Text>
+              <Pressable
+                style={styles.rowNamePressable}
+                onPress={() => {
+                  if (!playerId) return;
+                  navigation.navigate('PlayerProfile', { playerId, name });
+                }}
+                disabled={!playerId}
+              >
+                <Text style={[styles.rowText, styles.rowNameText]}>{name}</Text>
+              </Pressable>
               <Pressable
                 style={[styles.removeButton, actionId && styles.buttonDisabled]}
                 onPress={() => handleRemoveFriend(f)}
@@ -373,6 +383,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   rowText: { flex: 1, fontSize: 16, color: colors.textMuted, fontWeight: '500', marginRight: 8 },
+  rowNamePressable: { flex: 1, marginRight: 8 },
+  rowNameText: { marginRight: 0 },
   removeButton: {
     borderWidth: 1,
     borderColor: colors.danger,

@@ -54,6 +54,7 @@ const TournamentCode = () => {
         <TextInput
           style={styles.input}
           placeholder="Kod turnieju"
+          placeholderTextColor={colors.placeholder}
           value={code}
           onChangeText={setCode}
           autoCorrect={false}

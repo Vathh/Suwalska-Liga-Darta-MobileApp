@@ -1,37 +1,24 @@
 import React from 'react';
-import { Alert, Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import useAuth from '../../hooks/useAuth';
 import { colors } from '../../theme/colors';
 
+/** Tylko wyświetlenie nazwy zalogowanego gracza (bez akcji). */
 const AccountMenuButton = () => {
-	const { auth, logout } = useAuth();
-
+	const { auth } = useAuth();
 	const displayName = auth?.playerName?.trim() || 'Konto';
 
-	const handlePress = () => {
-		Alert.alert(displayName, 'Wybierz akcję', [
-			{ text: 'Anuluj', style: 'cancel' },
-			{
-				text: 'Wyloguj',
-				style: 'destructive',
-				onPress: () => {
-					void logout();
-				},
-			},
-		]);
-	};
-
 	return (
-		<Pressable style={styles.button} onPress={handlePress}>
+		<View style={styles.wrap}>
 			<Text style={styles.text} numberOfLines={1}>
 				{displayName}
 			</Text>
-		</Pressable>
+		</View>
 	);
 };
 
 const styles = StyleSheet.create({
-	button: {
+	wrap: {
 		paddingHorizontal: 8,
 		maxWidth: 140,
 	},

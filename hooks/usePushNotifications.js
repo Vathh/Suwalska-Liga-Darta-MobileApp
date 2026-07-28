@@ -19,7 +19,10 @@ function openInvitationsFromResponse(response) {
 	if (data?.screen !== 'Zaproszenia' && !data?.type) {
 		return;
 	}
-	navigate('Zaproszenia', { tab: tabFromNotificationData(data) });
+	navigate('MainTabs', {
+		screen: 'Zaproszenia',
+		params: { tab: tabFromNotificationData(data) },
+	});
 }
 
 /**

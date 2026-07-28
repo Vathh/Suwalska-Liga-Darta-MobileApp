@@ -143,7 +143,7 @@ const Home = ({ navigation }) => {
         ) : null}
         <Pressable style={styles.button} onPress={tournamentModeHandler}>
           <Text style={styles.buttonText}>Turniej</Text>
-          <Text style={styles.buttonHint}>Sędziowanie tabletem (kod tabletu)</Text>
+          <Text style={styles.buttonHint}>Wymagany kod logowania</Text>
         </Pressable>
         {auth?.accessToken ? (
           <Pressable
@@ -155,12 +155,10 @@ const Home = ({ navigation }) => {
           </Pressable>
         ) : null}
         <Pressable style={styles.button} onPress={quickGameOnlineHandler}>
-          <Text style={styles.buttonText}>Quick game online</Text>
-          <Text style={styles.buttonHint}>Lobby, znajomi, zapis w statystykach</Text>
+          <Text style={styles.buttonText}>Szybka gra online</Text>
         </Pressable>
         <Pressable style={styles.button} onPress={trainingHandler}>
           <Text style={styles.buttonText}>Trening</Text>
-          <Text style={styles.buttonHint}>Bez internetu · wynik nie jest zapisywany</Text>
         </Pressable>
       </View>
     </View>

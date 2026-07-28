@@ -72,10 +72,9 @@ export default function AppShell() {
 			: Platform.OS === 'android'
 				? (RNStatusBar.currentHeight ?? 24)
 				: 0;
-	const bottomInset = Math.max(insets.bottom, 10);
 
 	return (
-		<View style={[styles.container, { paddingTop: topInset, paddingBottom: bottomInset }]}>
+		<View style={[styles.container, { paddingTop: topInset }]}>
 			<GestureHandlerRootView style={styles.gesture}>
 				<StatusBar style="light" />
 				<NavigationContainer ref={navigationRef} linking={linking}>

@@ -56,6 +56,7 @@ const TournamentLogin = () => {
 				<TextInput
 					style={styles.input}
 					placeholder="Email"
+					placeholderTextColor={colors.placeholder}
 					value={email}
 					onChangeText={setEmail}
 					autoCorrect={false}
@@ -66,6 +67,7 @@ const TournamentLogin = () => {
 				<TextInput
 					style={styles.input}
 					placeholder="Hasło"
+					placeholderTextColor={colors.placeholder}
 					value={password}
 					onChangeText={setPassword}
 					secureTextEntry

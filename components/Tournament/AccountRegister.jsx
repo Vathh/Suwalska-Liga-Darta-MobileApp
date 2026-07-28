@@ -106,6 +106,7 @@ const AccountRegister = () => {
             <TextInput
               style={styles.input}
               placeholder="Nazwa gracza"
+              placeholderTextColor={colors.placeholder}
               value={name}
               onChangeText={setName}
               autoCorrect={false}
@@ -114,6 +115,7 @@ const AccountRegister = () => {
             <TextInput
               style={styles.input}
               placeholder="Email"
+              placeholderTextColor={colors.placeholder}
               value={email}
               onChangeText={setEmail}
               autoCorrect={false}
@@ -124,6 +126,7 @@ const AccountRegister = () => {
             <TextInput
               style={styles.input}
               placeholder="Hasło (min. 8 znaków)"
+              placeholderTextColor={colors.placeholder}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -133,6 +136,7 @@ const AccountRegister = () => {
             <TextInput
               style={styles.input}
               placeholder="Powtórz hasło"
+              placeholderTextColor={colors.placeholder}
               value={passwordConfirmation}
               onChangeText={setPasswordConfirmation}
               secureTextEntry

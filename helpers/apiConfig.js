@@ -279,6 +279,11 @@ export const FRIENDS_INVITATIONS_SENT_URL =
 	FRIENDS_API_URL + '/invitations/sent';
 export const USERS_SEARCH_URL = API_BASE_URL + '/users/search';
 
+export const getPlayerProfileUrl = (playerId) =>
+	API_BASE_URL + '/players/' + playerId;
+export const getPlayerGamesUrl = (playerId, page = 1) =>
+	API_BASE_URL + '/players/' + playerId + '/games?page=' + page;
+
 const TOURNAMENT_INVITATIONS_PREFIX = '/tournaments/invitations';
 export const TOURNAMENT_INVITATIONS_RECEIVED_URL =
 	API_BASE_URL + TOURNAMENT_INVITATIONS_PREFIX + '/received';
