@@ -7,6 +7,7 @@ import GameScoringScreen from '../components/Game/GameScoringScreen';
 import TournamentLogin from '../components/Tournament/TournamentLogin';
 import AccountRegister from '../components/Tournament/AccountRegister';
 import TournamentCode from '../components/Tournament/TournamentCode';
+import JoinTournamentScreen from '../components/Tournament/JoinTournamentScreen';
 import Home from '../components/Core/Home';
 import QuickGameLobby from '../components/QuickGame/QuickGameLobby';
 import TrainingMatchSetup from '../components/QuickGame/TrainingMatchSetup';
@@ -65,6 +66,11 @@ const Screens = () => {
         <Stack.Screen
           name="TournamentCode"
           component={TournamentCode}
+          options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
+        />
+        <Stack.Screen
+          name="JoinTournament"
+          component={JoinTournamentScreen}
           options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
         />
         <Stack.Screen
@@ -131,6 +137,11 @@ const Screens = () => {
         <Stack.Screen
           name="TournamentCode"
           component={TournamentCode}
+          options={{ headerTitle: (props) => <HeaderTitle {...props} /> }}
+        />
+        <Stack.Screen
+          name="JoinTournament"
+          component={JoinTournamentScreen}
           options={{ headerTitle: (props) => <HeaderTitle {...props} /> }}
         />
         <Stack.Screen

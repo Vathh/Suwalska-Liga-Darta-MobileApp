@@ -1,15 +1,35 @@
 import { useEffect } from 'react';
+import { Linking, Platform, StatusBar as RNStatusBar, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { ExpoKeepAwakeTag, deactivateKeepAwake } from 'expo-keep-awake';
-import { Platform, StatusBar as RNStatusBar, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthProvider';
 import PushNotificationsBootstrap from './components/Common/PushNotificationsBootstrap';
 import Screens from './pages/Screens';
-import { navigationRef } from './helpers/navigationRef';
+import { navigate, navigationRef } from './helpers/navigationRef';
 import { colors } from './theme/colors';
+
+const linking = {
+	prefixes: ['twentysix://', 'https://dartscore.studiokam.pl'],
+	config: {
+		screens: {
+			JoinTournament: {
+				path: 'join-tournament/:code',
+				parse: {
+					code: (code) => String(code ?? '').toUpperCase(),
+				},
+			},
+		},
+	},
+};
+
+function extractJoinCodeFromUrl(url) {
+	if (!url || typeof url !== 'string') return null;
+	const match = url.match(/join-tournament\/([A-Za-z0-9]+)/i);
+	return match?.[1] ? match[1].toUpperCase() : null;
+}
 
 /**
  * Expo w dev (`withDevTools`) włącza keep-awake na domyślnym tagu, gdy
@@ -25,8 +45,26 @@ function useAllowScreenSleepOutsideScoring() {
 	}, []);
 }
 
+function useJoinTournamentDeepLink() {
+	useEffect(() => {
+		const openJoin = (url) => {
+			const code = extractJoinCodeFromUrl(url);
+			if (!code) return;
+			setTimeout(() => navigate('JoinTournament', { code }), 300);
+		};
+
+		Linking.getInitialURL().then((url) => {
+			if (url) openJoin(url);
+		});
+
+		const sub = Linking.addEventListener('url', ({ url }) => openJoin(url));
+		return () => sub.remove();
+	}, []);
+}
+
 export default function AppShell() {
 	useAllowScreenSleepOutsideScoring();
+	useJoinTournamentDeepLink();
 	const insets = useSafeAreaInsets();
 	const topInset =
 		insets.top > 0
@@ -40,7 +78,7 @@ export default function AppShell() {
 		<View style={[styles.container, { paddingTop: topInset, paddingBottom: bottomInset }]}>
 			<GestureHandlerRootView style={styles.gesture}>
 				<StatusBar style="light" />
-				<NavigationContainer ref={navigationRef}>
+				<NavigationContainer ref={navigationRef} linking={linking}>
 					<AuthProvider>
 						<PushNotificationsBootstrap />
 						<Screens />

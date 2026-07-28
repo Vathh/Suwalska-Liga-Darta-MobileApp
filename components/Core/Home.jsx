@@ -143,7 +143,17 @@ const Home = ({ navigation }) => {
         ) : null}
         <Pressable style={styles.button} onPress={tournamentModeHandler}>
           <Text style={styles.buttonText}>Turniej</Text>
+          <Text style={styles.buttonHint}>Sędziowanie tabletem (kod tabletu)</Text>
         </Pressable>
+        {auth?.accessToken ? (
+          <Pressable
+            style={styles.button}
+            onPress={() => navigation.navigate('JoinTournament')}
+          >
+            <Text style={styles.buttonText}>Dołącz do turnieju</Text>
+            <Text style={styles.buttonHint}>Kod / QR od organizatora</Text>
+          </Pressable>
+        ) : null}
         <Pressable style={styles.button} onPress={quickGameOnlineHandler}>
           <Text style={styles.buttonText}>Quick game online</Text>
           <Text style={styles.buttonHint}>Lobby, znajomi, zapis w statystykach</Text>

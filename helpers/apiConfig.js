@@ -289,4 +289,9 @@ export const getTournamentInvitationRejectUrl = (invitationId) =>
 export const getTournamentInvitationWithdrawUrl = (invitationId) =>
 	API_BASE_URL + TOURNAMENT_INVITATIONS_PREFIX + '/' + invitationId + '/withdraw';
 
+export const getTournamentJoinPreviewUrl = (code) =>
+	API_BASE_URL + '/tournaments/join/' + encodeURIComponent(code);
+export const getTournamentJoinApplyUrl = (code) =>
+	API_BASE_URL + '/tournaments/join/' + encodeURIComponent(code);
+
 export const PUSH_TOKENS_API_URL = API_BASE_URL + '/push-tokens';

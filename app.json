@@ -2,6 +2,7 @@
   "expo": {
     "name": "twentySix",
     "slug": "twentysix",
+    "scheme": "twentysix",
     "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -36,6 +37,12 @@
           "android": {
             "usesCleartextTraffic": true
           }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "twentySix potrzebuje kamery, żeby zeskanować kod QR turnieju."
         }
       ],
       "expo-secure-store",
