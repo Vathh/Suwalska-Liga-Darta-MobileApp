@@ -1,8 +1,9 @@
 import 'react-native-gesture-handler';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initTheme } from './theme/colors';
+import AppIntro from './components/Common/AppIntro';
 
 // pusher-js (web build) oczekuje `self` — w RN jest tylko `global`
 if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
@@ -12,12 +13,18 @@ if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
 /**
  * Ładuje motyw z AsyncStorage PRZED require AppShell / Screens,
  * żeby StyleSheet.create dostał właściwe hex z aktywnej palety.
+ * Potem pokazuje intro z animowanym logotypem.
  */
 export default function App() {
 	const [ready, setReady] = useState(false);
+	const [introDone, setIntroDone] = useState(false);
 
 	useEffect(() => {
 		initTheme().finally(() => setReady(true));
+	}, []);
+
+	const handleIntroDone = useCallback(() => {
+		setIntroDone(true);
 	}, []);
 
 	if (!ready) {
@@ -26,6 +33,10 @@ export default function App() {
 				<ActivityIndicator size="large" color="#F59E0B" />
 			</View>
 		);
+	}
+
+	if (!introDone) {
+		return <AppIntro onDone={handleIntroDone} />;
 	}
 
 	const AppShell = require('./AppShell').default;
