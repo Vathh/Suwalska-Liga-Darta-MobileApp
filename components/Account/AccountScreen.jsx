@@ -3,7 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import useAuth from '../../hooks/useAuth';
 import { colors } from '../../theme/colors';
 
-/** Menu konta: profil własny + wylogowanie (placeholder na kolejne pozycje). */
+/** Menu konta: profil, zmiana hasła, wylogowanie. */
 const AccountScreen = ({ navigation }) => {
 	const { auth, logout } = useAuth();
 
@@ -36,6 +36,12 @@ const AccountScreen = ({ navigation }) => {
 		<View style={styles.container}>
 			<Pressable style={styles.item} onPress={openOwnProfile}>
 				<Text style={styles.itemText}>Profil</Text>
+			</Pressable>
+			<Pressable
+				style={styles.item}
+				onPress={() => navigation.navigate('ChangePassword')}
+			>
+				<Text style={styles.itemText}>Zmień hasło</Text>
 			</Pressable>
 			<Pressable style={[styles.item, styles.itemDanger]} onPress={confirmLogout}>
 				<Text style={styles.itemTextDanger}>Wyloguj</Text>

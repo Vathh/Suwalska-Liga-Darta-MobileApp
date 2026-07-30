@@ -20,7 +20,7 @@ import { colors } from '../../theme/colors';
 const TAB_OVERVIEW = 'overview';
 const TAB_HISTORY = 'history';
 
-const PlayerProfileScreen = ({ route }) => {
+const PlayerProfileScreen = ({ navigation, route }) => {
 	const { auth } = useAuth();
 	const playerId = route?.params?.playerId;
 	const [profile, setProfile] = useState(null);
@@ -91,6 +91,14 @@ const PlayerProfileScreen = ({ route }) => {
 			<ProfileHeader
 				name={profile?.player?.name}
 				registeredAt={profile?.player?.registeredAt}
+				description={profile?.player?.description}
+				isSelf={!!profile?.friendship?.isSelf}
+				onEditPress={() =>
+					navigation.navigate('EditPlayerProfile', {
+						playerId,
+						description: profile?.player?.description ?? '',
+					})
+				}
 			/>
 			<ProfileFriendshipActions
 				friendship={profile?.friendship}

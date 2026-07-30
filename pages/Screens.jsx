@@ -18,7 +18,9 @@ import TrainingMatchSetup from '../components/QuickGame/TrainingMatchSetup';
 import FriendsScreen from '../components/Friends/FriendsScreen';
 import InvitationsScreen from '../components/Invitations/InvitationsScreen';
 import PlayerProfileScreen from '../components/PlayerProfile/PlayerProfileScreen';
+import EditPlayerProfileScreen from '../components/PlayerProfile/EditPlayerProfileScreen';
 import AccountScreen from '../components/Account/AccountScreen';
+import ChangePasswordScreen from '../components/Account/ChangePasswordScreen';
 import CompetitionsScreen from '../components/Competitions/CompetitionsScreen';
 import LeaguesListScreen from '../components/Competitions/LeaguesListScreen';
 import SeasonsListScreen from '../components/Competitions/SeasonsListScreen';
@@ -215,6 +217,22 @@ const Screens = () => {
 				<Stack.Screen name="TournamentCode" component={TournamentCode} options={flowOptions} />
 				<Stack.Screen name="JoinTournament" component={JoinTournamentScreen} options={flowOptions} />
 				<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} options={flowOptions} />
+				<Stack.Screen
+					name="EditPlayerProfile"
+					component={EditPlayerProfileScreen}
+					options={{
+						...flowOptions,
+						title: 'Edycja profilu',
+					}}
+				/>
+				<Stack.Screen
+					name="ChangePassword"
+					component={ChangePasswordScreen}
+					options={{
+						...flowOptions,
+						title: 'Zmień hasło',
+					}}
+				/>
 				<Stack.Screen name="LeaguesList" component={LeaguesListScreen} options={flowOptions} />
 				<Stack.Screen name="SeasonsList" component={SeasonsListScreen} options={flowOptions} />
 				<Stack.Screen name="TournamentsList" component={TournamentsListScreen} options={flowOptions} />

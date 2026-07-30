@@ -1,6 +1,7 @@
 import {
 	ACCOUNT_LOGIN_API_URL,
 	ACCOUNT_LOGOUT_API_URL,
+	ACCOUNT_CHANGE_PASSWORD_API_URL,
 	ACCOUNT_SESSION_REFRESH_API_URL,
 } from './apiConfig';
 
@@ -52,4 +53,22 @@ export async function logoutAuthSession(accessToken) {
 		headers: authHeaders(accessToken),
 	});
 	return { ok: response.ok, status: response.status };
+}
+
+export async function changePassword(accessToken, {
+	currentPassword,
+	password,
+	passwordConfirmation,
+}) {
+	const response = await fetch(ACCOUNT_CHANGE_PASSWORD_API_URL, {
+		method: 'PUT',
+		headers: authHeaders(accessToken),
+		body: JSON.stringify({
+			current_password: currentPassword,
+			password,
+			password_confirmation: passwordConfirmation,
+		}),
+	});
+	const data = await response.json().catch(() => ({}));
+	return { ok: response.ok, status: response.status, data };
 }
