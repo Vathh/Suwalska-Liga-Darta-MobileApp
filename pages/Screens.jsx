@@ -19,6 +19,13 @@ import FriendsScreen from '../components/Friends/FriendsScreen';
 import InvitationsScreen from '../components/Invitations/InvitationsScreen';
 import PlayerProfileScreen from '../components/PlayerProfile/PlayerProfileScreen';
 import AccountScreen from '../components/Account/AccountScreen';
+import CompetitionsScreen from '../components/Competitions/CompetitionsScreen';
+import LeaguesListScreen from '../components/Competitions/LeaguesListScreen';
+import SeasonsListScreen from '../components/Competitions/SeasonsListScreen';
+import TournamentsListScreen from '../components/Competitions/TournamentsListScreen';
+import LeagueDetailScreen from '../components/Competitions/LeagueDetailScreen';
+import SeasonDetailScreen from '../components/Competitions/SeasonDetailScreen';
+import TournamentDetailScreen from '../components/Competitions/TournamentDetailScreen';
 import HeaderTitle from '../components/Common/HeaderTitle';
 import AccountMenuButton from '../components/Common/AccountMenuButton';
 import LogoutButton from '../components/Common/LogoutButton';
@@ -31,14 +38,14 @@ const Tab = createBottomTabNavigator();
 const headerOptions = {
 	headerStyle: { backgroundColor: colors.bg },
 	headerTintColor: colors.accent,
-	headerTitleAlign: 'center',
+	headerTitleAlign: 'left',
 };
 
 function tabIcon(name) {
 	return ({ color, size }) => <Ionicons name={name} size={size} color={color} />;
 }
 
-/** Dolny pasek: Graj / Znajomi / Zaproszenia (+ ukryty pusty Home jako landing). */
+/** Dolny pasek: Graj / Rozgrywki / Znajomi / Zaproszenia / Konto (+ ukryty Home). */
 function UserMainTabs() {
 	const insets = useSafeAreaInsets();
 	return (
@@ -75,6 +82,14 @@ function UserMainTabs() {
 				options={{
 					tabBarLabel: 'Graj',
 					tabBarIcon: tabIcon('play-circle-outline'),
+				}}
+			/>
+			<Tab.Screen
+				name="Rozgrywki"
+				component={CompetitionsScreen}
+				options={{
+					tabBarLabel: 'Rozgrywki',
+					tabBarIcon: tabIcon('trophy-outline'),
 				}}
 			/>
 			<Tab.Screen
@@ -200,6 +215,12 @@ const Screens = () => {
 				<Stack.Screen name="TournamentCode" component={TournamentCode} options={flowOptions} />
 				<Stack.Screen name="JoinTournament" component={JoinTournamentScreen} options={flowOptions} />
 				<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} options={flowOptions} />
+				<Stack.Screen name="LeaguesList" component={LeaguesListScreen} options={flowOptions} />
+				<Stack.Screen name="SeasonsList" component={SeasonsListScreen} options={flowOptions} />
+				<Stack.Screen name="TournamentsList" component={TournamentsListScreen} options={flowOptions} />
+				<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} options={flowOptions} />
+				<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} options={flowOptions} />
+				<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} options={flowOptions} />
 			</Stack.Navigator>
 		);
 	}

@@ -299,4 +299,20 @@ export const getTournamentJoinPreviewUrl = (code) =>
 export const getTournamentJoinApplyUrl = (code) =>
 	API_BASE_URL + '/tournaments/join/' + encodeURIComponent(code);
 
+export const getLeaguesUrl = (page = 1) =>
+	API_BASE_URL + '/leagues?page=' + page;
+export const getSeasonsUrl = (page = 1) =>
+	API_BASE_URL + '/seasons?page=' + page;
+export const getTournamentsUrl = (page = 1) =>
+	API_BASE_URL + '/tournaments?page=' + page;
+
+export const getLeagueUrl = (leagueId) =>
+	API_BASE_URL + '/leagues/' + leagueId;
+export const getSeasonUrl = (seasonId) =>
+	API_BASE_URL + '/seasons/' + seasonId;
+export const getSeasonStandingsUrl = (seasonId, page = 1) =>
+	API_BASE_URL + '/seasons/' + seasonId + '/standings?page=' + page;
+export const getTournamentUrl = (tournamentId) =>
+	API_BASE_URL + '/tournaments/' + tournamentId;
+
 export const PUSH_TOKENS_API_URL = API_BASE_URL + '/push-tokens';
