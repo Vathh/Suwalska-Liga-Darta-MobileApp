@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import { LOGIN_API_URL } from '../../helpers/apiConfig'
+import { loginWithTournamentCode } from '../../helpers/authApi'
 import useAuth from '../../hooks/useAuth'
 import { colors } from '../../theme/colors'
 
@@ -21,17 +21,9 @@ const TournamentCode = () => {
     setErrorMsg('')
 
     try {
-      const response = await fetch(LOGIN_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ code })
-      })
-      const data = await response.json()
+      const { ok, data } = await loginWithTournamentCode(code)
 
-      if (!response.ok) {
+      if (!ok) {
         setErrorMsg(data?.message || 'Nieprawidłowy kod turnieju')
         return
       }

@@ -10,7 +10,7 @@
  */
 
 const LOCAL_HOST =
-	process.env.EXPO_PUBLIC_LOCAL_HOST?.trim() || '192.168.0.28';
+	process.env.EXPO_PUBLIC_LOCAL_HOST?.trim() || '192.168.10.94';
 
 const API_PRESETS = {
 	local: {
@@ -111,7 +111,7 @@ function resolveReverbWsHost() {
 		const host = u.hostname;
 		if (INVALID_CLIENT_WS_HOSTS.has(host)) {
 			console.warn(
-				'[WS/Reverb:config] API_BASE_URL ma host 0.0.0.0 / :: — telefon nie połączy się z Reverb. Ustaw IPv4 komputera w EXPO_PUBLIC_LOCAL_HOST albo EXPO_PUBLIC_REVERB_HOST (np. 192.168.0.28). W backendzie REVERB_HOST=0.0.0.0 jest OK dla serwera; klient musi użyć realnego IP.',
+				'[WS/Reverb:config] API_BASE_URL ma host 0.0.0.0 / :: — telefon nie połączy się z Reverb. Ustaw IPv4 komputera w EXPO_PUBLIC_LOCAL_HOST albo EXPO_PUBLIC_REVERB_HOST (np. 192.168.10.94). W backendzie REVERB_HOST=0.0.0.0 jest OK dla serwera; klient musi użyć realnego IP.',
 			);
 		}
 		return host;

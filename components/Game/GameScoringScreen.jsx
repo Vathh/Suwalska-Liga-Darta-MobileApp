@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useIsFocused } from '@react-navigation/native';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { playerResultReducer } from '../../helpers/reducers/playerResultReducer';
 import {
   appendDartLabel,
@@ -23,10 +23,7 @@ import {
 	undoSingleDart,
 } from '../../helpers/reducers/playerResultActions';
 import { achievementsReducer } from '../../helpers/reducers/achievementsReducer';
-import {
-	addAchievement,
-	initialAchievementsState,
-} from '../../helpers/reducers/achievementActions';
+import { initialAchievementsState } from '../../helpers/reducers/achievementActions';
 import Counter from './Counter';
 import Stats from './Stats';
 import Settings from '../Core/Settings';
@@ -36,6 +33,8 @@ import { useGameSettings } from '../../hooks/useGameSettings';
 import useAuth from '../../hooks/useAuth';
 import { useGameScoring } from '../../hooks/useGameScoring';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
+import { useGameFinishedEffects } from '../../hooks/useGameFinishedEffects';
+import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
 import {
 	promptTournamentFinishedLogout,
 	useTournamentFinishedRealtime,
@@ -43,26 +42,17 @@ import {
 import {
 	canCounterInput,
 	checkoutLegPrompt,
-	findWinnerIndex,
 	isOneDeviceSpectator,
-	mapAchievementsForQuick,
-	mapAchievementsForTournament,
 	GAME_MODE,
 	newClientVisitId,
 	resolveGameContext,
-	sendQuickGameAchievements,
-	sendTournamentAchievements,
-	shouldHandleLocalTrainingWin,
-	showGameFinishedAlert,
-	showTrainingFinishedAlert,
 	createOfflineVisitFlow,
 	createOnlineVisitFlow,
 } from '../../helpers/gameScoring';
-import { createFfaTransport } from '../../helpers/gameScoring/transports/createFfaTransport.js';
-import { releaseTournamentGame } from '../../helpers/lockTournamentGame';
+import { createAchievementHandlers } from '../../helpers/gameScoring/achievementHandlers';
+import { createDartHistoryTracker } from '../../helpers/gameScoring/dartHistoryTracker';
 import { computeNextLegOpener } from '../../helpers/computeNextLegOpener';
 import { evaluatePerDartVisitAfterDart } from '../../helpers/perDartVisitRules';
-import { postFfaPresence } from '../../helpers/quickGameFfaApi';
 import { buildFfaPresenceBannerMessages } from '../../helpers/ffaPresenceMessages';
 import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
 import { isCricketGameType } from '../../helpers/cricket';
@@ -80,8 +70,14 @@ const GameScoringScreen = ({ route, navigation }) => {
 
 	const [selectedComponent, setSelectedComponent] = useState('counter');
 
+	/** Musi istnieć przed resolveGameContext — factory dokłada go do transportu FFA (live turn check). */
+	const currentPlayerIndexRef = useRef(0);
+
 	const gameCtx = useMemo(
-		() => resolveGameContext(route.params, auth),
+		() =>
+			resolveGameContext(route.params, auth, {
+				getCurrentPlayerIndex: () => currentPlayerIndexRef.current,
+			}),
 		[route.params, auth],
 	);
 	const {
@@ -206,7 +202,6 @@ const GameScoringScreen = ({ route, navigation }) => {
 	);
 
 	const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-	const currentPlayerIndexRef = useRef(0);
 	/** Indeks zawodnika rozpoczynającego bieżący leg (rotacja: opener+1 po zamknięciu lega). */
 	const legOpenerIndexRef = useRef(0);
 	const okHandlingRef = useRef(false);
@@ -214,8 +209,6 @@ const GameScoringScreen = ({ route, navigation }) => {
 	const pendingCheckoutRef = useRef(null);
 	/** Blokada podwójnego kliknięcia w modalu lotki checkout (API trwa długo). */
 	const checkoutClosingRef = useRef(false);
-	const tournamentResultSentRef = useRef(false);
-	const quickResultSentRef = useRef(false);
 	const [ffaFinishedQuickGameId, setFfaFinishedQuickGameId] = useState(null);
 	const currentPlayer = players[currentPlayerIndex] ?? null;
 	const [currentResult, setCurrentResult] = useState(0);
@@ -249,106 +242,28 @@ const GameScoringScreen = ({ route, navigation }) => {
 	/** Suma punktów w bieżącej wizycie per-dart (zerowana na początku każdej wizyty). */
 	const visitPointsTotalRef = useRef(0);
 
-	const pushVisitLog = (playerIndex, visitScore, darts = null, { bust = false } = {}) => {
-		visitLogRef.current.push({
-			playerIndex,
-			visitScore,
-			darts: darts?.length ? [...darts] : null,
-			bust,
-		});
-	};
-
-	const getRecentVisitDartPoints = (playerIndex) => {
-		const hist = dartHistoryRef.current;
-		const points = [];
-		for (let i = hist.length - 1; i >= 0 && points.length < 3; i -= 1) {
-			const entry = hist[i];
-			if (entry.playerIndex !== playerIndex || entry.completedVisit) {
-				continue;
-			}
-			points.unshift(entry.points);
-		}
-		return points;
-	};
-
-	const discardInProgressPerDartVisit = useCallback(() => {
-		dartHistoryRef.current = dartHistoryRef.current.filter(
-			(entry) => entry.completedVisit,
-		);
-		visitStartScoreRef.current = null;
-		visitClientIdRef.current = null;
-		visitPointsTotalRef.current = 0;
-		setLocalRemaining(null);
-		const idx = currentPlayerIndexRef.current;
-		playerDispatches[idx](resetVisitDartLabels());
-	}, [playerDispatches, setLocalRemaining]);
-
-	const pushDartToHistory = (playerIndex, points, label) => {
-		dartHistoryRef.current.push({
-			playerIndex,
-			points,
-			label,
-			completedVisit: false,
-		});
-	};
-
-	const popDartHistory = (count = 1) => {
-		for (let i = 0; i < count; i += 1) {
-			if (dartHistoryRef.current.length > 0) {
-				dartHistoryRef.current.pop();
-			}
-		}
-		if (count >= 3) {
-			visitPointsTotalRef.current = 0;
-		}
-	};
-
-	const markCurrentVisitCompleted = (playerIndex) => {
-		const hist = dartHistoryRef.current;
-		let marked = 0;
-		for (let i = hist.length - 1; i >= 0 && marked < 3; i -= 1) {
-			if (hist[i].playerIndex !== playerIndex || hist[i].completedVisit) {
-				continue;
-			}
-			hist[i].completedVisit = true;
-			marked += 1;
-		}
-	};
-
-	const hasActivePerDartVisit = () =>
-		isPerDartMode &&
-		(visitClientIdRef.current != null ||
-			visitPointsTotalRef.current > 0 ||
-			localVisitRemainingRef.current != null);
+	const {
+		pushVisitLog,
+		getRecentVisitDartPoints,
+		discardInProgressPerDartVisit,
+		pushDartToHistory,
+		popDartHistory,
+		markCurrentVisitCompleted,
+		hasActivePerDartVisit,
+	} = createDartHistoryTracker({
+		dartHistoryRef,
+		visitLogRef,
+		visitPointsTotalRef,
+		visitStartScoreRef,
+		visitClientIdRef,
+		localVisitRemainingRef,
+		playerDispatches,
+		setLocalRemaining,
+		currentPlayerIndexRef,
+		isPerDartMode: () => isPerDartMode,
+	});
 
 	const prevPerDartModeRef = useRef(isPerDartMode);
-
-	const scoringTransport = useMemo(() => {
-		if (
-			mode === GAME_MODE.QUICK_FFA &&
-			lobbyScoringMode === 'each_own' &&
-			lobbyId &&
-			auth?.accessToken
-		) {
-			return createFfaTransport({
-				lobbyId,
-				accessToken: auth.accessToken,
-				lobbyScoringMode,
-				isHost,
-				myPlayerIndexFromLobby: myPlayerIndex,
-				getCurrentPlayerIndex: () => currentPlayerIndexRef.current,
-			});
-		}
-		return transport;
-	}, [
-		mode,
-		lobbyScoringMode,
-		lobbyId,
-		auth?.accessToken,
-		isHost,
-		myPlayerIndex,
-		transport,
-	]);
 
 	const handleScoringStateLoaded = useCallback(
 		(state) => {
@@ -384,7 +299,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 
 	const gameScoring = useGameScoring({
 		enabled: syncEnabled && !gameClosed,
-		transport: scoringTransport,
+		transport,
 		players,
 		N,
 		playerDispatches,
@@ -489,64 +404,21 @@ const GameScoringScreen = ({ route, navigation }) => {
 		};
 	}, [isFocused, gameClosed]);
 
-	useEffect(() => {
-		if (!gameClosed || mode !== GAME_MODE.QUICK_FFA) return;
-		if (quickResultSentRef.current) return;
-		quickResultSentRef.current = true;
-
-		const achievementsPayload = mapAchievementsForQuick(achievementsState);
-		const gameId =
-			ffaFinishedQuickGameId ??
-			gameScoring.finishedQuickGameIdRef?.current ??
-			null;
-		if (gameId) {
-			void sendQuickGameAchievements({
-				accessToken: auth?.accessToken,
-				gameId,
-				achievementsPayload,
-			});
-		}
-
-		const winnerIdx = findWinnerIndex(playerStates, matchFormat);
-		showGameFinishedAlert(players[winnerIdx]?.name, {
-			title: 'Mecz zakończony',
-		});
-	}, [
+	useGameFinishedEffects({
+		mode,
 		gameClosed,
-		mode,
-		ffaFinishedQuickGameId,
-		achievementsState?.achievements,
-		auth?.accessToken,
-		players,
-		playerStates,
-		matchFormat,
-		gameScoring.finishedQuickGameIdRef,
-	]);
-
-	useEffect(() => {
-		if (
-			!shouldHandleLocalTrainingWin({
-				mode,
-				syncEnabled,
-				playerStates,
-				matchFormat,
-			})
-		) {
-			return;
-		}
-		if (gameClosed) return;
-
-		setGameClosed(true);
-		const winnerIdx = findWinnerIndex(playerStates, matchFormat);
-		showTrainingFinishedAlert(players[winnerIdx]?.name);
-	}, [
-		mode,
+		setGameClosed,
 		syncEnabled,
-		gameClosed,
-		matchFormat,
-		playerStates,
 		players,
-	]);
+		playerStates,
+		matchFormat,
+		achievementsState,
+		accessToken: auth?.accessToken,
+		ffaFinishedQuickGameId,
+		finishedQuickGameIdRef: gameScoring.finishedQuickGameIdRef,
+		activeGame,
+		N,
+	});
 
 	const toggleModal = () => {
 		setIsModalVisible((visibility) => !visibility);
@@ -627,57 +499,12 @@ const GameScoringScreen = ({ route, navigation }) => {
 		setResultEdited(false);
 	};
 
-	const handleMaxAndOneSeventy = (playerForAchievement, visitScore) => {
-		const p = playerForAchievement ?? currentPlayer;
-		if (!p) return;
-		const val =
-			visitScore !== undefined && visitScore !== null ? visitScore : currentResult;
-		if (val == 180) {
-			const max = {
-				playerId: p.playerId,
-				tournamentId: activeGame?.tournamentId,
-				value: null,
-				type: 'max',
-			};
-			achievementsDispatch(addAchievement(max));
-		}
-
-		if (val >= 170 && val < 180) {
-			const oneSeventy = {
-				playerId: p.playerId,
-				tournamentId: activeGame?.tournamentId,
-				value: val,
-				type: 'one_seventy',
-			};
-			achievementsDispatch(addAchievement(oneSeventy));
-		}
-	};
-
-	const handleHf = (visitScore, playerForHf) => {
-		const val =
-			visitScore !== undefined && visitScore !== null ? visitScore : currentResult;
-		const p = playerForHf ?? currentPlayer;
-		if (!p || val < 100) return;
-		const hf = {
-			playerId: p.playerId,
-			tournamentId: activeGame?.tournamentId,
-			value: val,
-			type: 'hf',
-		};
-		achievementsDispatch(addAchievement(hf));
-	};
-
-	const handleQf = (player, dart) => {
-		if (dart < 20) {
-			const qf = {
-				playerId: player.playerId,
-				tournamentId: activeGame?.tournamentId,
-				value: dart,
-				type: 'qf',
-			};
-			achievementsDispatch(addAchievement(qf));
-		}
-	};
+	const { handleMaxAndOneSeventy, handleHf, handleQf } = createAchievementHandlers({
+		achievementsDispatch,
+		activeGame,
+		currentPlayer,
+		currentResult,
+	});
 
 	const getCheckoutPrompt = (player) =>
 		checkoutLegPrompt({
@@ -1084,90 +911,16 @@ const GameScoringScreen = ({ route, navigation }) => {
 		playerDispatches[prevIdx](undo());
 	};
 
-	useEffect(() => {
-		if (!gameClosed || mode !== GAME_MODE.TOURNAMENT || !syncEnabled) return;
-		if (tournamentResultSentRef.current) return;
-		tournamentResultSentRef.current = true;
-
-		const winnerIdx = findWinnerIndex(playerStates, matchFormat);
-		const achievementsPayload = mapAchievementsForTournament(achievementsState);
-		if (achievementsPayload.length > 0) {
-			void sendTournamentAchievements({
-				accessToken: auth?.accessToken,
-				activeGame,
-				players,
-				playerStates,
-				N,
-				achievements: achievementsPayload,
-				matchFormat,
-			});
-		}
-		showGameFinishedAlert(players[winnerIdx]?.name);
-	}, [
-		gameClosed,
+	useLeaveGameConfirmation({
+		navigation,
 		mode,
+		gameClosed,
+		tournamentGame,
+		accessToken: auth?.accessToken,
 		syncEnabled,
-		matchFormat,
-		achievementsState?.achievements,
-		auth?.accessToken,
-		activeGame,
-		players,
-		playerStates,
-		N,
-	]);
-
-	useEffect(
-		() =>
-			navigation.addListener('beforeRemove', (e) => {
-				e.preventDefault();
-
-				Alert.alert('UWAGA', 'Czy na pewno chcesz opuścić mecz?', [
-					{ text: 'KONTYNUUJ MECZ', style: 'cancel', onPress: () => {} },
-					{
-						text: 'OPUŚĆ MECZ',
-						style: 'destructive',
-						onPress: async () => {
-							if (
-								mode === GAME_MODE.TOURNAMENT &&
-								!gameClosed &&
-								tournamentGame?.id &&
-								auth?.accessToken
-							) {
-								await releaseTournamentGame({
-									gameId: tournamentGame.id,
-									type: tournamentGame.type === 'playoff' ? 'playoff' : 'group',
-									accessToken: auth.accessToken,
-								});
-							}
-							if (
-								mode === GAME_MODE.QUICK_FFA &&
-								syncEnabled &&
-								!gameClosed &&
-								lobbyId &&
-								auth?.accessToken
-							) {
-								intentionalFfaLeaveRef.current = true;
-								try {
-									await postFfaPresence(lobbyId, auth.accessToken, 'left');
-								} catch {
-									// Wyjście z ekranu i tak dozwolone
-								}
-							}
-							navigation.dispatch(e.data.action);
-						},
-					},
-				]);
-			}),
-		[
-			navigation,
-			mode,
-			gameClosed,
-			tournamentGame,
-			auth?.accessToken,
-			syncEnabled,
-			lobbyId,
-		],
-	);
+		lobbyId,
+		intentionalFfaLeaveRef,
+	});
 
 	useFfaPresenceHeartbeat({
 		mode,

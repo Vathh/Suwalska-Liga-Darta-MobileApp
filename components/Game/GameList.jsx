@@ -16,9 +16,9 @@ import {
   promptTournamentFinishedLogout,
   useTournamentFinishedRealtime,
 } from '../../hooks/useTournamentFinishedRealtime';
-import { ACTIVE_GAMES_API_URL } from '../../helpers/apiConfig';
 import { colors } from '../../theme/colors';
 import { lockTournamentGame } from '../../helpers/lockTournamentGame';
+import { fetchActiveGames } from '../../helpers/gameListApi';
 
 const PLAYOFF_ROUND_ORDER = [
   'SIXTEEN',
@@ -56,12 +56,8 @@ const GameList = ({ navigation }) => {
   const fetchGames = useCallback(async () => {
     if (!auth?.accessToken || auth?.tournamentId == null) return;
     try {
-      const url = `${ACTIVE_GAMES_API_URL}?tournamentId=${auth.tournamentId}`;
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${auth.accessToken}` },
-      });
-      if (res.status === 401) {
+      const result = await fetchActiveGames(auth.tournamentId, auth.accessToken);
+      if (result.status === 401) {
         promptTournamentFinishedLogout(
           setAuth,
           auth.tournamentId,
@@ -69,9 +65,8 @@ const GameList = ({ navigation }) => {
         );
         return;
       }
-      if (res.ok) {
-        const data = await res.json();
-        setGames(Array.isArray(data) ? data : []);
+      if (result.ok) {
+        setGames(result.data);
       }
     } catch (e) {
       console.warn('fetchGames', e);

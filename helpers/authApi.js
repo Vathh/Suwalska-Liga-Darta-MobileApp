@@ -3,6 +3,9 @@ import {
 	ACCOUNT_LOGOUT_API_URL,
 	ACCOUNT_CHANGE_PASSWORD_API_URL,
 	ACCOUNT_SESSION_REFRESH_API_URL,
+	LOGIN_API_URL,
+	REGISTER_API_URL,
+	RESEND_VERIFICATION_API_URL,
 } from './apiConfig';
 
 const JSON_HEADERS = {
@@ -68,6 +71,36 @@ export async function changePassword(accessToken, {
 			password,
 			password_confirmation: passwordConfirmation,
 		}),
+	});
+	const data = await response.json().catch(() => ({}));
+	return { ok: response.ok, status: response.status, data };
+}
+
+export async function registerAccount({ name, email, password }) {
+	const response = await fetch(REGISTER_API_URL, {
+		method: 'POST',
+		headers: JSON_HEADERS,
+		body: JSON.stringify({ name, email, password }),
+	});
+	const data = await response.json().catch(() => ({}));
+	return { ok: response.ok, status: response.status, data };
+}
+
+export async function resendVerificationEmail(email) {
+	const response = await fetch(RESEND_VERIFICATION_API_URL, {
+		method: 'POST',
+		headers: JSON_HEADERS,
+		body: JSON.stringify({ email }),
+	});
+	const data = await response.json().catch(() => ({}));
+	return { ok: response.ok, status: response.status, data };
+}
+
+export async function loginWithTournamentCode(code) {
+	const response = await fetch(LOGIN_API_URL, {
+		method: 'POST',
+		headers: JSON_HEADERS,
+		body: JSON.stringify({ code }),
 	});
 	const data = await response.json().catch(() => ({}));
 	return { ok: response.ok, status: response.status, data };

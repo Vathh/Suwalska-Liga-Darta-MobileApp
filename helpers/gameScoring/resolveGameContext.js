@@ -42,8 +42,11 @@ function resolveMyPlayerIndex(matchConfig, auth, players) {
 
 /**
  * Jedno miejsce na kontekst meczu z parametrów nawigacji.
+ * @param {object} options - opcjonalny `getCurrentPlayerIndex()` doprowadzany do transportu FFA,
+ *   żeby `assertCanInput` widział aktualną turę (chroni przed race po WS update w trakcie zapisu).
  */
-export function resolveGameContext(routeParams, auth) {
+export function resolveGameContext(routeParams, auth, options = {}) {
+	const { getCurrentPlayerIndex = null } = options;
 	const trainingGame = routeParams?.trainingGame ?? null;
 	const quickGame = routeParams?.quickGame ?? null;
 	const tournamentGame = routeParams?.game ?? null;
@@ -120,6 +123,7 @@ export function resolveGameContext(routeParams, auth) {
 			lobbyScoringMode,
 			isHost,
 			myPlayerIndexFromLobby: myPlayerIndex,
+			getCurrentPlayerIndex,
 		});
 		reloadKey = lobbyId;
 	} else if (hasOnlineQuick && accessToken) {
@@ -129,6 +133,7 @@ export function resolveGameContext(routeParams, auth) {
 			lobbyScoringMode,
 			isHost,
 			myPlayerIndexFromLobby: myPlayerIndex,
+			getCurrentPlayerIndex,
 		});
 		reloadKey = lobbyId;
 	}

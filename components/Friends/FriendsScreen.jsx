@@ -12,12 +12,12 @@ import {
 } from 'react-native';
 import useAuth from '../../hooks/useAuth';
 import {
-  FRIENDS_API_URL,
-  FRIENDS_INVITE_URL,
-  FRIENDS_INVITATIONS_SENT_URL,
-  FRIENDS_REMOVE_URL,
-  USERS_SEARCH_URL,
-} from '../../helpers/apiConfig';
+  fetchFriends as fetchFriendsRequest,
+  fetchSentFriendInvitations,
+  removeFriend as removeFriendRequest,
+  searchUsers,
+  sendFriendInvite,
+} from '../../helpers/friendsApi';
 import { colors } from '../../theme/colors';
 
 const TAB_LIST = 'list';
@@ -36,38 +36,19 @@ const FriendsScreen = ({ navigation }) => {
   const [error, setError] = useState('');
   const [actionId, setActionId] = useState(null);
 
-  const authHeaders = useCallback(
-    () => ({
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Bearer ${auth?.accessToken}`,
-    }),
-    [auth?.accessToken],
-  );
-
   const fetchFriends = useCallback(async () => {
     if (!auth?.accessToken) return;
     try {
       const [friendsRes, sentRes] = await Promise.all([
-        fetch(FRIENDS_API_URL, {
-          headers: { Authorization: `Bearer ${auth.accessToken}` },
-        }),
-        fetch(FRIENDS_INVITATIONS_SENT_URL, {
-          headers: { Authorization: `Bearer ${auth.accessToken}` },
-        }),
+        fetchFriendsRequest(auth.accessToken),
+        fetchSentFriendInvitations(auth.accessToken),
       ]);
 
-      if (friendsRes.ok) {
-        const data = await friendsRes.json();
-        setFriends(data?.friends ?? []);
-      } else {
-        setFriends([]);
-      }
+      setFriends(friendsRes.ok ? (friendsRes.data?.friends ?? []) : []);
 
       if (sentRes.ok) {
-        const data = await sentRes.json();
         setSentInvitations(
-          (data?.invitations ?? []).filter((inv) => inv.status === 'pending'),
+          (sentRes.data?.invitations ?? []).filter((inv) => inv.status === 'pending'),
         );
       } else {
         setSentInvitations([]);
@@ -98,16 +79,8 @@ const FriendsScreen = ({ navigation }) => {
     const timer = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const url = `${USERS_SEARCH_URL}?q=${encodeURIComponent(searchQuery.trim())}`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${auth.accessToken}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSearchResults(data?.users ?? []);
-        } else {
-          setSearchResults([]);
-        }
+        const { ok, data } = await searchUsers(searchQuery.trim(), auth.accessToken);
+        setSearchResults(ok ? (data?.users ?? []) : []);
       } catch (e) {
         setSearchResults([]);
       } finally {
@@ -127,13 +100,8 @@ const FriendsScreen = ({ navigation }) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`invite-${receiverId}`);
     try {
-      const res = await fetch(FRIENDS_INVITE_URL, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ receiverId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      const { ok, data } = await sendFriendInvite(receiverId, auth.accessToken);
+      if (ok) {
         Alert.alert('Wysłano', data?.message || 'Zaproszenie zostało wysłane.');
         setSearchResults((prev) => prev.filter((u) => u.id !== receiverId));
         await fetchFriends();
@@ -159,13 +127,8 @@ const FriendsScreen = ({ navigation }) => {
           if (actionId) return;
           setActionId(`remove-${friendId}`);
           try {
-            const res = await fetch(FRIENDS_REMOVE_URL, {
-              method: 'DELETE',
-              headers: authHeaders(),
-              body: JSON.stringify({ friendId }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) {
+            const { ok, data } = await removeFriendRequest(friendId, auth.accessToken);
+            if (ok) {
               setFriends((prev) => prev.filter((f) => (f.id ?? f.playerId) !== friendId));
             } else {
               Alert.alert('Błąd', data?.message || 'Nie udało się usunąć znajomego.');

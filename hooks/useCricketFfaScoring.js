@@ -10,6 +10,15 @@ const BACKUP_POLL_MS = 2500;
 
 /**
  * Sync stanu cricket FFA (GET + WS + poll).
+ *
+ * Świadomie osobny hook od `useGameScoring` (nie X01 wizyty tylko hit/miss po segmentach,
+ * inny kształt stanu: `hits`/`points`/`legsWon` bez wspólnego pipeline'u
+ * normalizeScoringState/applyGameScoringState/computeStateRevision). Scalenie wymagałoby
+ * przepisania tego pipeline'u pod dwa formaty stanu — ryzykowny big-bang rewrite dojrzałego
+ * scoringu X01, którego reguła inżynierska każe unikać. Oba silniki są już ujednolicone
+ * na poziomie wyższym: ten sam `resolveGameContext` + kontrakt transportu
+ * (fetchState/getRealtimeConfig/assertCanInput/assertCanUndo), żaden ekran nie tworzy
+ * transportu FFA ad-hoc.
  */
 export function useCricketFfaScoring({
 	enabled,

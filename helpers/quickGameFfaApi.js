@@ -114,7 +114,7 @@ export async function undoFfaCricketDart(lobbyId, accessToken) {
 	return data;
 }
 
-export async function fetchActiveFfaMatch(accessToken) {
+export async function fetchActiveFfaGame(accessToken) {
 	const res = await fetch(QUICK_GAME_LOBBY_ACTIVE_MATCH_URL, {
 		headers: {
 			Authorization: `Bearer ${accessToken}`,

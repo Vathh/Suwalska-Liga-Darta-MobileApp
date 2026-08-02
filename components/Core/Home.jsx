@@ -3,9 +3,9 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import useAuth from '../../hooks/useAuth'
 import {
-	buildGameScoringParamsFromActiveMatch,
-	resolveActiveFfaMatch,
-} from '../../helpers/activeQuickGameMatch'
+	buildGameScoringParamsFromActiveGame,
+	resolveActiveFfaGame,
+} from '../../helpers/activeQuickGame'
 import { postFfaPresence } from '../../helpers/quickGameFfaApi'
 import { colors } from '../../theme/colors'
 
@@ -28,7 +28,7 @@ const Home = ({ navigation }) => {
 
       setActiveMatch(null)
 
-      resolveActiveFfaMatch(auth.accessToken)
+      resolveActiveFfaGame(auth.accessToken)
         .then((match) => {
           if (!cancelled) {
             setActiveMatch(match)
@@ -66,7 +66,7 @@ const Home = ({ navigation }) => {
   }
 
   const resumeMatchHandler = () => {
-    const params = buildGameScoringParamsFromActiveMatch(activeMatch)
+    const params = buildGameScoringParamsFromActiveGame(activeMatch)
     if (params) {
       navigation.navigate('GameScoring', params)
     }

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Asset } from 'expo-asset';
+import React, { useCallback, useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
+import introSvgXml from '../../assets/introLogotypXml';
 import { colors } from '../../theme/colors';
 
 /** Czas animacji SVG (~2.5s) + krótki zapas przed przejściem do appki. */
@@ -40,58 +40,42 @@ function buildIntroHtml(svgXml) {
 
 /**
  * Intro przy starcie: animowany logotyp (stroke reveal z easein-easeout.svg).
+ *
+ * SVG jest osadzone w bundlu (`introLogotypXml.js`), nie ładowane przez expo-asset + fetch —
+ * na Androidzie w release APK asset URI często nie jest prawdziwym plikiem i intro znikało.
  */
 const AppIntro = ({ onDone }) => {
-	const [html, setHtml] = useState(null);
-
 	const finish = useCallback(() => {
 		onDone?.();
 	}, [onDone]);
 
 	useEffect(() => {
-		let cancelled = false;
-
-		(async () => {
-			try {
-				const asset = Asset.fromModule(require('../../assets/intro-logotyp.svg'));
-				await asset.downloadAsync();
-				const uri = asset.localUri || asset.uri;
-				const res = await fetch(uri);
-				const svgXml = await res.text();
-				if (cancelled) return;
-				setHtml(buildIntroHtml(svgXml));
-			} catch {
-				if (!cancelled) finish();
-			}
-		})();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [finish]);
-
-	useEffect(() => {
-		if (!html) return undefined;
 		const timer = setTimeout(finish, INTRO_DURATION_MS);
 		return () => clearTimeout(timer);
-	}, [html, finish]);
+	}, [finish]);
+
+	const html = buildIntroHtml(introSvgXml);
 
 	return (
 		<View style={styles.root}>
-			{html ? (
-				<WebView
-					originWhitelist={['*']}
-					source={{ html }}
-					style={styles.webview}
-					containerStyle={styles.webview}
-					scrollEnabled={false}
-					bounces={false}
-					showsVerticalScrollIndicator={false}
-					showsHorizontalScrollIndicator={false}
-					androidLayerType="hardware"
-					setSupportMultipleWindows={false}
-				/>
-			) : null}
+			<WebView
+				originWhitelist={['*']}
+				source={{
+					html,
+					// Android: bez baseUrl HTML bywa o `about:blank` i CSS animacje SVG bywają niestabilne.
+					baseUrl: Platform.OS === 'android' ? 'https://twentysix.local/' : undefined,
+				}}
+				style={styles.webview}
+				containerStyle={styles.webview}
+				scrollEnabled={false}
+				bounces={false}
+				showsVerticalScrollIndicator={false}
+				showsHorizontalScrollIndicator={false}
+				androidLayerType="hardware"
+				setSupportMultipleWindows={false}
+				javaScriptEnabled={false}
+				domStorageEnabled={false}
+			/>
 		</View>
 	);
 };

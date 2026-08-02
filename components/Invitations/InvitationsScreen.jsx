@@ -11,17 +11,14 @@ import {
 } from 'react-native';
 import useAuth from '../../hooks/useAuth';
 import {
-  FRIENDS_ACCEPT_URL,
-  FRIENDS_INVITATIONS_RECEIVED_URL,
-  FRIENDS_REJECT_URL,
-  QUICK_GAME_LOBBY_INVITATIONS_URL,
-  TOURNAMENT_INVITATIONS_RECEIVED_URL,
-  getQuickGameLobbyRejectInvitationUrl,
-  getQuickGameLobbyUrl,
-  getTournamentInvitationAcceptUrl,
-  getTournamentInvitationRejectUrl,
-  getTournamentInvitationWithdrawUrl,
-} from '../../helpers/apiConfig';
+  actOnFriendInvitation,
+  actOnTournamentInvitation,
+  fetchFriendInvitationsReceived,
+  fetchQuickGameLobbyInvitations,
+  fetchTournamentInvitationsReceived,
+  joinQuickGameLobby,
+  rejectQuickGameLobbyInvitation,
+} from '../../helpers/invitationsApi';
 import { colors } from '../../theme/colors';
 
 const TAB_TOURNAMENT = 'tournament';
@@ -53,48 +50,21 @@ const InvitationsScreen = ({ navigation, route }) => {
     }
   }, [route?.params?.tab]);
 
-  const authHeaders = useCallback(
-    () => ({
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Bearer ${auth?.accessToken}`,
-    }),
-    [auth?.accessToken],
-  );
-
   const fetchAll = useCallback(async () => {
     if (!auth?.accessToken) return;
     try {
       const [tournamentRes, lobbyRes, friendsRes] = await Promise.all([
-        fetch(TOURNAMENT_INVITATIONS_RECEIVED_URL, {
-          headers: { Authorization: `Bearer ${auth.accessToken}` },
-        }),
-        fetch(QUICK_GAME_LOBBY_INVITATIONS_URL, {
-          headers: { Authorization: `Bearer ${auth.accessToken}` },
-        }),
-        fetch(FRIENDS_INVITATIONS_RECEIVED_URL, {
-          headers: { Authorization: `Bearer ${auth.accessToken}` },
-        }),
+        fetchTournamentInvitationsReceived(auth.accessToken),
+        fetchQuickGameLobbyInvitations(auth.accessToken),
+        fetchFriendInvitationsReceived(auth.accessToken),
       ]);
 
-      if (tournamentRes.ok) {
-        const data = await tournamentRes.json();
-        setTournamentInvitations(data?.invitations ?? []);
-      } else {
-        setTournamentInvitations([]);
-      }
-
-      if (lobbyRes.ok) {
-        const data = await lobbyRes.json();
-        setLobbyInvitations(data?.invitations ?? []);
-      } else {
-        setLobbyInvitations([]);
-      }
+      setTournamentInvitations(tournamentRes.ok ? (tournamentRes.data?.invitations ?? []) : []);
+      setLobbyInvitations(lobbyRes.ok ? (lobbyRes.data?.invitations ?? []) : []);
 
       if (friendsRes.ok) {
-        const data = await friendsRes.json();
         setFriendInvitations(
-          (data?.invitations ?? []).filter((inv) => inv.status === 'pending'),
+          (friendsRes.data?.invitations ?? []).filter((inv) => inv.status === 'pending'),
         );
       } else {
         setFriendInvitations([]);
@@ -122,21 +92,10 @@ const InvitationsScreen = ({ navigation, route }) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`${action}-${invitationId}`);
 
-    const urlMap = {
-      accept: getTournamentInvitationAcceptUrl(invitationId),
-      reject: getTournamentInvitationRejectUrl(invitationId),
-      withdraw: getTournamentInvitationWithdrawUrl(invitationId),
-    };
-
     try {
-      const res = await fetch(urlMap[action], {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({}),
-      });
-      const data = await res.json().catch(() => ({}));
+      const { ok, data } = await actOnTournamentInvitation(invitationId, action, auth.accessToken);
 
-      if (res.ok) {
+      if (ok) {
         await fetchAll();
       } else {
         Alert.alert('Błąd', data?.message || 'Operacja nie powiodła się.');
@@ -152,16 +111,11 @@ const InvitationsScreen = ({ navigation, route }) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`join-${inv.id}`);
     try {
-      const joinRes = await fetch(getQuickGameLobbyUrl(inv.lobbyId) + '/join', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({}),
-      });
-      const joinData = await joinRes.json().catch(() => ({}));
-      if (joinRes.ok && joinData?.id) {
-        navigation.navigate('QuickGameLobby', { initialLobby: joinData });
+      const { ok, data } = await joinQuickGameLobby(inv.lobbyId, auth.accessToken);
+      if (ok && data?.id) {
+        navigation.navigate('QuickGameLobby', { initialLobby: data });
       } else {
-        Alert.alert('Błąd', joinData?.message || 'Nie udało się dołączyć do lobby.');
+        Alert.alert('Błąd', data?.message || 'Nie udało się dołączyć do lobby.');
       }
     } catch (e) {
       Alert.alert('Błąd', 'Błąd połączenia.');
@@ -174,17 +128,10 @@ const InvitationsScreen = ({ navigation, route }) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`${action}-friend-${invitationId}`);
 
-    const url = action === 'accept' ? FRIENDS_ACCEPT_URL : FRIENDS_REJECT_URL;
-
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ invitationId }),
-      });
-      const data = await res.json().catch(() => ({}));
+      const { ok, data } = await actOnFriendInvitation(invitationId, action, auth.accessToken);
 
-      if (res.ok) {
+      if (ok) {
         setFriendInvitations((prev) => prev.filter((i) => i.id !== invitationId));
         if (action === 'accept') {
           Alert.alert('Gotowe', data?.message || 'Zaproszenie zaakceptowane.');
@@ -203,15 +150,10 @@ const InvitationsScreen = ({ navigation, route }) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`reject-${inv.id}`);
     try {
-      const res = await fetch(getQuickGameLobbyRejectInvitationUrl(inv.id), {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({}),
-      });
-      if (res.ok) {
+      const { ok, data } = await rejectQuickGameLobbyInvitation(inv.id, auth.accessToken);
+      if (ok) {
         setLobbyInvitations((prev) => prev.filter((i) => i.id !== inv.id));
       } else {
-        const data = await res.json().catch(() => ({}));
         Alert.alert('Błąd', data?.message || 'Nie udało się odrzucić zaproszenia.');
       }
     } catch (e) {

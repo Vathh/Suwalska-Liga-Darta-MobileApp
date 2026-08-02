@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { REGISTER_API_URL, RESEND_VERIFICATION_API_URL } from '../../helpers/apiConfig'
+import { registerAccount, resendVerificationEmail } from '../../helpers/authApi'
 import { colors } from '../../theme/colors'
 
 const AccountRegister = () => {
@@ -39,17 +39,9 @@ const AccountRegister = () => {
     setLoading(true)
 
     try {
-      const response = await fetch(REGISTER_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-      })
-      const data = await response.json()
+      const { ok, data } = await registerAccount({ name, email, password })
 
-      if (!response.ok) {
+      if (!ok) {
         setErrorMsg(parseErrorMessage(data))
         return
       }
@@ -71,17 +63,9 @@ const AccountRegister = () => {
     setLoading(true)
 
     try {
-      const response = await fetch(RESEND_VERIFICATION_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
-      const data = await response.json()
+      const { ok, data } = await resendVerificationEmail(email)
 
-      if (!response.ok) {
+      if (!ok) {
         setErrorMsg(parseErrorMessage(data))
         return
       }

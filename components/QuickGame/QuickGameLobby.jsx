@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -10,47 +10,38 @@ import {
   View,
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
-import { useFocusEffect } from '@react-navigation/native';
 import useAuth from '../../hooks/useAuth';
-import { useQuickGameLobbyRealtime } from '../../hooks/useQuickGameLobbyRealtime';
 import {
-  QUICK_GAME_LOBBY_CREATE_API_URL,
-  getQuickGameLobbyUrl,
-  getQuickGameLobbyLeaveUrl,
-  getQuickGameLobbyReadyUrl,
-  getQuickGameLobbyStartUrl,
-  getQuickGameLobbyInviteUrl,
-  getQuickGameLobbyAddGuestUrl,
-  FRIENDS_API_URL,
-  getReverbDiagnostics,
-} from '../../helpers/apiConfig';
+  QUICK_GAME_GAME_TYPES as GAME_TYPES,
+  QUICK_GAME_SCORING_MODES as SCORING_MODES,
+  normalizeLobbyGameType,
+  useQuickGameLobbyState,
+} from '../../hooks/useQuickGameLobbyState';
+import { getReverbDiagnostics } from '../../helpers/apiConfig';
+import {
+  addQuickGameLobbyGuest,
+  createQuickGameLobby,
+  inviteToQuickGameLobby,
+  leaveQuickGameLobby,
+  markQuickGameLobbyReady,
+  startQuickGameLobby,
+  updateQuickGameLobbySettings,
+} from '../../helpers/quickGameLobbyApi';
+import { fetchFriends as fetchFriendsRequest } from '../../helpers/friendsApi';
 import { addCachedTempName, getCachedTempNames } from '../../helpers/tempPlayerCache';
 import ReverbDebugPanel from '../ReverbDebugPanel';
-import { logReverbWs } from '../../helpers/reverbWsLog';
 import MatchFormatPicker, { DEFAULT_MATCH_FORMAT } from './MatchFormatPicker';
 import {
   formatMatchLabel,
   normalizeMatchFormat,
 } from '../../helpers/matchFormat/matchFormat';
-import {
-  loadPersistedMatchFormat,
-  savePersistedMatchFormat,
-} from '../../helpers/matchFormat/persistMatchFormat';
+import { savePersistedMatchFormat } from '../../helpers/matchFormat/persistMatchFormat';
 import { colors } from '../../theme/colors';
 
 const MAX_LOBBY_PLAYERS = 8;
 
 const playerKey = (item, index) =>
   String(item.id ?? item.playerId ?? item.player_id ?? item.tempName ?? index);
-
-const normalizeLobbyGameType = (value) => {
-  const raw = String(value ?? 'x01').toLowerCase();
-  if (raw === 'cricket') return 'cricket';
-  if (raw === '501') return 'x01';
-  return 'x01';
-};
-
-const SCORING_MODES = { ONE_DEVICE: 'one_device', EACH_OWN: 'each_own' };
 
 const INVITATION_STATUS = {
   sent: { key: 'sent', label: 'Wysłane', color: colors.accent },
@@ -60,12 +51,23 @@ const INVITATION_STATUS = {
 
 const QuickGameLobby = ({ navigation, route }) => {
   const { auth } = useAuth();
-  const GAME_TYPES = { X01: 'x01', CRICKET: 'cricket' };
-  const [lobby, setLobby] = useState(null);
-  const [matchFormat, setMatchFormat] = useState(DEFAULT_MATCH_FORMAT);
-  const [gameType, setGameType] = useState(GAME_TYPES.X01);
-  const [scoringMode, setScoringMode] = useState(SCORING_MODES.EACH_OWN);
-  const [invitations, setInvitations] = useState([]); // [{ id, name, status: 'sent'|'accepted'|'rejected' }]
+  const {
+    lobby,
+    setLobby,
+    matchFormat,
+    setMatchFormat,
+    gameType,
+    setGameType,
+    scoringMode,
+    setScoringMode,
+    invitations,
+    setInvitations,
+    orderedPlayers,
+    setOrderedPlayers,
+    wsLive,
+    applyLobbyData,
+    fetchLobbyById,
+  } = useQuickGameLobbyState({ route, navigation, auth, defaultMatchFormat: DEFAULT_MATCH_FORMAT });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
@@ -76,13 +78,7 @@ const QuickGameLobby = ({ navigation, route }) => {
   const [friends, setFriends] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [myReady, setMyReady] = useState(false); // po kliknięciu Gotowy – nie pozwalaj klikać ponownie
-  const [wsLive, setWsLive] = useState(false);
   const reverbDiag = getReverbDiagnostics();
-  const [orderedPlayers, setOrderedPlayers] = useState([]);
-
-  useEffect(() => {
-    loadPersistedMatchFormat('quickGame').then(setMatchFormat);
-  }, []);
 
   const resolveMyPlayerIndex = useCallback((players, fromApi) => {
     if (fromApi !== undefined && fromApi !== null) return fromApi;
@@ -93,156 +89,12 @@ const QuickGameLobby = ({ navigation, route }) => {
     return idx >= 0 ? idx : null;
   }, [auth?.playerId]);
 
-  const applyLobbyData = useCallback((data, fallbackLobbyId = null) => {
-    if (!data) return;
-    if (data.matchInProgress && data.status === 'started' && data.players?.length >= 2) {
-      const players = (data.players || []).map((p) => ({
-        id: p.id,
-        name: p.name ?? p.tempName ?? 'Gracz',
-        playerId: p.playerId ?? p.player_id,
-      }));
-      const gameTypeToUse = normalizeLobbyGameType(data.gameType ?? data.game_type);
-      const format = normalizeMatchFormat({
-        ...data.matchFormat,
-        gameType: gameTypeToUse,
-      });
-      const scoringModeToUse = data.scoringMode ?? SCORING_MODES.EACH_OWN;
-      const isHost = data.youAreHost ?? lobby?.youAreHost ?? false;
-      const myPlayerIndex = resolveMyPlayerIndex(players, data.myPlayerIndex);
-      setLobby(null);
-      navigation.navigate('GameScoring', {
-        quickGame: {
-          players,
-          lobbyId: data.id ?? fallbackLobbyId ?? lobby?.id ?? null,
-          matchFormat: format,
-          gameType: gameTypeToUse,
-          scoringMode: scoringModeToUse,
-          isHost,
-          myPlayerIndex,
-        },
-      });
-      return;
-    }
-
-    setLobby((prev) => ({
-      ...(prev ?? {}),
-      ...data,
-      // Pole user-specific może nie przyjść w evencie lobby; zachowaj poprzednią wartość.
-      youAreHost: data.youAreHost ?? prev?.youAreHost ?? false,
-      gameType: normalizeLobbyGameType(data.gameType ?? data.game_type ?? prev?.gameType),
-      scoringMode: data.scoringMode ?? prev?.scoringMode ?? SCORING_MODES.EACH_OWN,
-    }));
-    if (data.matchFormat != null) {
-      setMatchFormat(
-        normalizeMatchFormat({
-          ...data.matchFormat,
-          gameType: normalizeLobbyGameType(
-            data.gameType ?? data.game_type ?? data.matchFormat.gameType,
-          ),
-        }),
-      );
-    }
-    if (data.scoringMode != null) setScoringMode(data.scoringMode);
-    if (data.gameType != null || data.game_type != null) {
-      setGameType(normalizeLobbyGameType(data.gameType ?? data.game_type));
-    }
-    // Bez tablicy players nie ruszaj orderedPlayers (unikaj [] z „pustego” payloadu).
-    if (Array.isArray(data.players)) {
-      const incoming = data.players.map((p) => ({ ...p, name: p.name ?? p.tempName ?? 'Gracz' }));
-      setOrderedPlayers((prev) => {
-        const key = (p) => p.id ?? p.playerId ?? p.player_id ?? p.tempName ?? '';
-        const incIds = new Set(incoming.map(key));
-        const prevIds = new Set(prev.map(key));
-        if (prev.length === 0 || incIds.size !== prevIds.size || [...incIds].some((id) => !prevIds.has(id))) {
-          return incoming;
-        }
-        return prev.map((p) => incoming.find((i) => key(i) === key(p)) || p).filter(Boolean);
-      });
-      // Lokalna lista „Zaproszenia” — usuń wpis gdy gracz już dołączył do lobby (HTTP/WS).
-      setInvitations((prev) =>
-        prev.filter((inv) => {
-          const joined = incoming.some(
-            (p) =>
-              (inv.id != null &&
-                (Number(p.playerId) === Number(inv.id) ||
-                  Number(p.player_id) === Number(inv.id))) ||
-              (inv.name && (p.name ?? p.tempName) === inv.name),
-          );
-          return !joined;
-        }),
-      );
-    }
-  }, [GAME_TYPES.X01, SCORING_MODES.EACH_OWN, lobby?.id, lobby?.youAreHost, navigation, resolveMyPlayerIndex]);
-
-  const fetchLobbyById = useCallback(async (lobbyId) => {
-    if (!lobbyId || !auth?.accessToken) return;
-    logReverbWs('info', 'lobby-http', 'GET lobby (polling/refresh)', { lobbyId });
-    try {
-      const res = await fetch(getQuickGameLobbyUrl(lobbyId), {
-        headers: { Authorization: `Bearer ${auth.accessToken}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        logReverbWs('info', 'lobby-http', `GET lobby ${res.status}`, {
-          lobbyId: data?.id,
-          players: data?.players?.length,
-        });
-        applyLobbyData(data, lobbyId);
-      } else {
-        logReverbWs('warn', 'lobby-http', `GET lobby HTTP ${res.status}`);
-      }
-    } catch (e) {
-      logReverbWs('error', 'lobby-http', 'GET lobby błąd', e);
-    }
-  }, [auth?.accessToken, applyLobbyData]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const initial = route?.params?.initialLobby;
-      if (initial?.id) {
-        setLobby(initial);
-        setMatchFormat(normalizeMatchFormat(initial.matchFormat));
-        setGameType(initial.gameType ?? initial.game_type ?? GAME_TYPES.X01);
-        setScoringMode(initial.scoringMode ?? SCORING_MODES.EACH_OWN);
-        const pl = (initial.players || []).map((p) => ({ ...p, name: p.name ?? p.tempName ?? 'Gracz' }));
-        setOrderedPlayers(pl);
-        navigation.setParams({ initialLobby: undefined });
-      } else if (lobby?.id) {
-        fetchLobbyById(lobby.id);
-      }
-      return () => {};
-    }, [lobby?.id, fetchLobbyById, route?.params?.initialLobby, navigation])
-  );
-
-  useQuickGameLobbyRealtime({
-    lobbyId: lobby?.id ?? null,
-    accessToken: auth?.accessToken ?? null,
-    enabled: !!lobby?.id && !!auth?.accessToken,
-    onLobbyUpdated: applyLobbyData,
-    onWsHealthChange: setWsLive,
-  });
-
-  useEffect(() => {
-    if (!lobby?.id || !auth?.accessToken) return undefined;
-    const t = setInterval(() => fetchLobbyById(lobby.id), 45000);
-    return () => clearInterval(t);
-  }, [lobby?.id, auth?.accessToken, fetchLobbyById]);
-
   const handleCreate = async () => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(QUICK_GAME_LOBBY_CREATE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          ...(auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
-        },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (res.ok && data?.id) {
+      const { ok, data } = await createQuickGameLobby(auth?.accessToken);
+      if (ok && data?.id) {
         setLobby({ ...data, gameType: data.gameType ?? data.game_type ?? GAME_TYPES.X01 });
         setMatchFormat(normalizeMatchFormat(data.matchFormat ?? matchFormat));
         setGameType(data.gameType ?? data.game_type ?? GAME_TYPES.X01);
@@ -262,15 +114,8 @@ const QuickGameLobby = ({ navigation, route }) => {
     if (!auth?.accessToken) return;
     setFriendsLoading(true);
     try {
-      const res = await fetch(FRIENDS_API_URL, {
-        headers: { Authorization: `Bearer ${auth.accessToken}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFriends(Array.isArray(data) ? data : (data?.friends ?? data?.data ?? []));
-      } else {
-        setFriends([]);
-      }
+      const { ok, data } = await fetchFriendsRequest(auth.accessToken);
+      setFriends(ok ? (Array.isArray(data) ? data : (data?.friends ?? data?.data ?? [])) : []);
     } catch (e) {
       setFriends([]);
     } finally {
@@ -298,17 +143,8 @@ const QuickGameLobby = ({ navigation, route }) => {
     }
     setAddingGuest(true);
     try {
-      const res = await fetch(getQuickGameLobbyAddGuestUrl(lobby.id), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${auth.accessToken}`,
-        },
-        body: JSON.stringify({ tempPlayerName: name }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      const { ok, data } = await addQuickGameLobbyGuest(lobby.id, auth.accessToken, name);
+      if (ok) {
         await addCachedTempName(name);
         applyLobbyData(data, lobby.id);
         setGuestModalVisible(false);
@@ -331,20 +167,15 @@ const QuickGameLobby = ({ navigation, route }) => {
     const playerId = friend.playerId ?? friend.id ?? friend.player_id;
     const name = friend.name ?? friend.playerName ?? 'Znajomy';
     try {
-      const res = await fetch(getQuickGameLobbyInviteUrl(lobby.id), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${auth.accessToken}`,
-        },
-        body: JSON.stringify({ playerId: playerId ?? friend.userId ?? friend.user_id }),
-      });
-      if (res.ok) {
+      const { ok, data } = await inviteToQuickGameLobby(
+        lobby.id,
+        auth.accessToken,
+        playerId ?? friend.userId ?? friend.user_id,
+      );
+      if (ok) {
         setInvitations((prev) => [...prev, { id: friend.id ?? playerId, name, status: 'sent' }]);
         setInviteModalVisible(false);
       } else {
-        const data = await res.json().catch(() => ({}));
         Alert.alert('Błąd', data?.message || 'Nie udało się wysłać zaproszenia');
       }
     } catch (e) {
@@ -355,10 +186,7 @@ const QuickGameLobby = ({ navigation, route }) => {
   const handleLeave = async () => {
     if (!lobby?.id || !auth?.accessToken) return;
     try {
-      await fetch(getQuickGameLobbyLeaveUrl(lobby.id), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${auth.accessToken}` },
-      });
+      await leaveQuickGameLobby(lobby.id, auth.accessToken);
       setLobby(null);
     } catch (e) {
       console.warn('leave', e);
@@ -368,10 +196,7 @@ const QuickGameLobby = ({ navigation, route }) => {
   const handleReady = async () => {
     if (!lobby?.id || !auth?.accessToken || myReady) return;
     try {
-      await fetch(getQuickGameLobbyReadyUrl(lobby.id), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${auth.accessToken}` },
-      });
+      await markQuickGameLobbyReady(lobby.id, auth.accessToken);
       setMyReady(true);
       fetchLobbyById(lobby.id);
     } catch (e) {
@@ -382,16 +207,8 @@ const QuickGameLobby = ({ navigation, route }) => {
   const handleUpdateSettings = async (updates) => {
     if (!lobby?.id || !auth?.accessToken || !lobby.youAreHost) return;
     try {
-      const res = await fetch(getQuickGameLobbyUrl(lobby.id), {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.accessToken}`,
-        },
-        body: JSON.stringify(updates),
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const { ok, data } = await updateQuickGameLobbySettings(lobby.id, auth.accessToken, updates);
+      if (ok) {
         setLobby((prev) => ({ ...prev, ...data }));
       }
     } catch (e) {
@@ -402,26 +219,18 @@ const QuickGameLobby = ({ navigation, route }) => {
   const handleStart = async () => {
     if (!lobby?.id || !auth?.accessToken) return;
     try {
-      const res = await fetch(getQuickGameLobbyStartUrl(lobby.id), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.accessToken}`,
-        },
-        body: JSON.stringify({
-          matchFormat: normalizeMatchFormat({
-            ...matchFormat,
-            gameType: gameType ?? lobby?.gameType ?? GAME_TYPES.X01,
-          }),
+      const { ok, data } = await startQuickGameLobby(lobby.id, auth.accessToken, {
+        matchFormat: normalizeMatchFormat({
+          ...matchFormat,
           gameType: gameType ?? lobby?.gameType ?? GAME_TYPES.X01,
-          scoringMode: scoringMode ?? lobby?.scoringMode ?? SCORING_MODES.EACH_OWN,
-          playerOrder: (orderedPlayers.length ? orderedPlayers : (lobby?.players || []))
-            .map((p) => p.id)
-            .filter(Boolean),
         }),
+        gameType: gameType ?? lobby?.gameType ?? GAME_TYPES.X01,
+        scoringMode: scoringMode ?? lobby?.scoringMode ?? SCORING_MODES.EACH_OWN,
+        playerOrder: (orderedPlayers.length ? orderedPlayers : (lobby?.players || []))
+          .map((p) => p.id)
+          .filter(Boolean),
       });
-      const data = await res.json();
-      if (res.ok && data?.players) {
+      if (ok && data?.players) {
         const gameTypeToUse = normalizeLobbyGameType(
           data.gameType ?? gameType ?? lobby?.gameType ?? GAME_TYPES.X01,
         );
