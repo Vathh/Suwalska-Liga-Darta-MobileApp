@@ -7,18 +7,7 @@ import {
 	REGISTER_API_URL,
 	RESEND_VERIFICATION_API_URL,
 } from './apiConfig';
-
-const JSON_HEADERS = {
-	'Content-Type': 'application/json',
-	Accept: 'application/json',
-};
-
-function authHeaders(accessToken) {
-	return {
-		...JSON_HEADERS,
-		Authorization: `Bearer ${accessToken}`,
-	};
-}
+import { apiRequest } from './apiClient';
 
 export function mapLoginResponseToAuth(data) {
 	return {
@@ -32,30 +21,28 @@ export function mapLoginResponseToAuth(data) {
 }
 
 export async function loginWithPassword(email, password) {
-	const response = await fetch(ACCOUNT_LOGIN_API_URL, {
+	return apiRequest(ACCOUNT_LOGIN_API_URL, {
 		method: 'POST',
-		headers: JSON_HEADERS,
-		body: JSON.stringify({ email, password }),
+		json: true,
+		body: { email, password },
 	});
-	const data = await response.json().catch(() => ({}));
-	return { ok: response.ok, status: response.status, data };
 }
 
 export async function refreshAuthSession(accessToken) {
-	const response = await fetch(ACCOUNT_SESSION_REFRESH_API_URL, {
+	return apiRequest(ACCOUNT_SESSION_REFRESH_API_URL, {
 		method: 'POST',
-		headers: authHeaders(accessToken),
+		accessToken,
+		json: true,
 	});
-	const data = await response.json().catch(() => ({}));
-	return { ok: response.ok, status: response.status, data };
 }
 
 export async function logoutAuthSession(accessToken) {
-	const response = await fetch(ACCOUNT_LOGOUT_API_URL, {
+	const { ok, status } = await apiRequest(ACCOUNT_LOGOUT_API_URL, {
 		method: 'POST',
-		headers: authHeaders(accessToken),
+		accessToken,
+		json: true,
 	});
-	return { ok: response.ok, status: response.status };
+	return { ok, status };
 }
 
 export async function changePassword(accessToken, {
@@ -63,45 +50,38 @@ export async function changePassword(accessToken, {
 	password,
 	passwordConfirmation,
 }) {
-	const response = await fetch(ACCOUNT_CHANGE_PASSWORD_API_URL, {
+	return apiRequest(ACCOUNT_CHANGE_PASSWORD_API_URL, {
 		method: 'PUT',
-		headers: authHeaders(accessToken),
-		body: JSON.stringify({
+		accessToken,
+		json: true,
+		body: {
 			current_password: currentPassword,
 			password,
 			password_confirmation: passwordConfirmation,
-		}),
+		},
 	});
-	const data = await response.json().catch(() => ({}));
-	return { ok: response.ok, status: response.status, data };
 }
 
 export async function registerAccount({ name, email, password }) {
-	const response = await fetch(REGISTER_API_URL, {
+	return apiRequest(REGISTER_API_URL, {
 		method: 'POST',
-		headers: JSON_HEADERS,
-		body: JSON.stringify({ name, email, password }),
+		json: true,
+		body: { name, email, password },
 	});
-	const data = await response.json().catch(() => ({}));
-	return { ok: response.ok, status: response.status, data };
 }
 
 export async function resendVerificationEmail(email) {
-	const response = await fetch(RESEND_VERIFICATION_API_URL, {
+	return apiRequest(RESEND_VERIFICATION_API_URL, {
 		method: 'POST',
-		headers: JSON_HEADERS,
-		body: JSON.stringify({ email }),
+		json: true,
+		body: { email },
 	});
-	const data = await response.json().catch(() => ({}));
-	return { ok: response.ok, status: response.status, data };
 }
 
 export async function loginWithTournamentCode(code) {
-	const response = await fetch(LOGIN_API_URL, {
+	return apiRequest(LOGIN_API_URL, {
 		method: 'POST',
-		headers: JSON_HEADERS,
-		body: JSON.stringify({ code }),
+		json: true,
+		body: { code },
 	});
-	const data = await response.json().catch(() => ({}));
-	return { ok: response.ok, status: response.status, data };
 }

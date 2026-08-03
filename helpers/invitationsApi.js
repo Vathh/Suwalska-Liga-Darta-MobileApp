@@ -10,44 +10,18 @@ import {
 	getTournamentInvitationRejectUrl,
 	getTournamentInvitationWithdrawUrl,
 } from './apiConfig';
-
-function authHeaders(accessToken, withJson = false) {
-	const headers = {
-		Accept: 'application/json',
-		Authorization: `Bearer ${accessToken}`,
-	};
-	if (withJson) {
-		headers['Content-Type'] = 'application/json';
-	}
-	return headers;
-}
-
-async function parseJsonSafe(res) {
-	return res.json().catch(() => ({}));
-}
+import { apiRequest } from './apiClient';
 
 export async function fetchTournamentInvitationsReceived(accessToken) {
-	const res = await fetch(TOURNAMENT_INVITATIONS_RECEIVED_URL, {
-		headers: authHeaders(accessToken),
-	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
+	return apiRequest(TOURNAMENT_INVITATIONS_RECEIVED_URL, { accessToken });
 }
 
 export async function fetchQuickGameLobbyInvitations(accessToken) {
-	const res = await fetch(QUICK_GAME_LOBBY_INVITATIONS_URL, {
-		headers: authHeaders(accessToken),
-	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
+	return apiRequest(QUICK_GAME_LOBBY_INVITATIONS_URL, { accessToken });
 }
 
 export async function fetchFriendInvitationsReceived(accessToken) {
-	const res = await fetch(FRIENDS_INVITATIONS_RECEIVED_URL, {
-		headers: authHeaders(accessToken),
-	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
+	return apiRequest(FRIENDS_INVITATIONS_RECEIVED_URL, { accessToken });
 }
 
 const TOURNAMENT_INVITATION_URL_BY_ACTION = {
@@ -58,42 +32,38 @@ const TOURNAMENT_INVITATION_URL_BY_ACTION = {
 
 export async function actOnTournamentInvitation(invitationId, action, accessToken) {
 	const buildUrl = TOURNAMENT_INVITATION_URL_BY_ACTION[action];
-	const res = await fetch(buildUrl(invitationId), {
+	return apiRequest(buildUrl(invitationId), {
 		method: 'POST',
-		headers: authHeaders(accessToken, true),
-		body: JSON.stringify({}),
+		accessToken,
+		json: true,
+		body: {},
 	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
 }
 
 export async function joinQuickGameLobby(lobbyId, accessToken) {
-	const res = await fetch(`${getQuickGameLobbyUrl(lobbyId)}/join`, {
+	return apiRequest(`${getQuickGameLobbyUrl(lobbyId)}/join`, {
 		method: 'POST',
-		headers: authHeaders(accessToken, true),
-		body: JSON.stringify({}),
+		accessToken,
+		json: true,
+		body: {},
 	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
 }
 
 export async function rejectQuickGameLobbyInvitation(invitationId, accessToken) {
-	const res = await fetch(getQuickGameLobbyRejectInvitationUrl(invitationId), {
+	return apiRequest(getQuickGameLobbyRejectInvitationUrl(invitationId), {
 		method: 'POST',
-		headers: authHeaders(accessToken, true),
-		body: JSON.stringify({}),
+		accessToken,
+		json: true,
+		body: {},
 	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
 }
 
 export async function actOnFriendInvitation(invitationId, action, accessToken) {
 	const url = action === 'accept' ? FRIENDS_ACCEPT_URL : FRIENDS_REJECT_URL;
-	const res = await fetch(url, {
+	return apiRequest(url, {
 		method: 'POST',
-		headers: authHeaders(accessToken, true),
-		body: JSON.stringify({ invitationId }),
+		accessToken,
+		json: true,
+		body: { invitationId },
 	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
 }

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-	FRIENDS_ACCEPT_URL,
-	FRIENDS_INVITE_URL,
-	FRIENDS_REJECT_URL,
-} from '../../helpers/apiConfig';
+import { sendFriendInvite } from '../../helpers/friendsApi';
+import { actOnFriendInvitation } from '../../helpers/invitationsApi';
 import { colors } from '../../theme/colors';
 
 const ProfileFriendshipActions = ({
@@ -19,28 +16,17 @@ const ProfileFriendshipActions = ({
 		return null;
 	}
 
-	const headers = {
-		'Content-Type': 'application/json',
-		Accept: 'application/json',
-		Authorization: `Bearer ${accessToken}`,
-	};
-
-	const runAction = async (url, body, okLabel) => {
+	const runAction = async (request, okLabel) => {
 		if (busy) return;
 		setBusy(true);
 		try {
-			const res = await fetch(url, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify(body),
-			});
-			const data = await res.json().catch(() => ({}));
-			if (!res.ok) {
-				Alert.alert('Błąd', data.message || 'Nie udało się wykonać akcji.');
+			const { ok, data } = await request();
+			if (!ok) {
+				Alert.alert('Błąd', data?.message || 'Nie udało się wykonać akcji.');
 				return;
 			}
 			if (okLabel) {
-				Alert.alert('OK', data.message || okLabel);
+				Alert.alert('OK', data?.message || okLabel);
 			}
 			onChanged?.();
 		} catch {
@@ -76,8 +62,7 @@ const ProfileFriendshipActions = ({
 						disabled={busy}
 						onPress={() =>
 							runAction(
-								FRIENDS_ACCEPT_URL,
-								{ invitationId: friendship.pendingReceived.id },
+								() => actOnFriendInvitation(friendship.pendingReceived.id, 'accept', accessToken),
 								'Zaproszenie zaakceptowane',
 							)
 						}
@@ -93,8 +78,7 @@ const ProfileFriendshipActions = ({
 						disabled={busy}
 						onPress={() =>
 							runAction(
-								FRIENDS_REJECT_URL,
-								{ invitationId: friendship.pendingReceived.id },
+								() => actOnFriendInvitation(friendship.pendingReceived.id, 'reject', accessToken),
 								'Zaproszenie odrzucone',
 							)
 						}
@@ -113,7 +97,7 @@ const ProfileFriendshipActions = ({
 					style={[styles.button, busy && styles.disabled]}
 					disabled={busy}
 					onPress={() =>
-						runAction(FRIENDS_INVITE_URL, { receiverId: userId }, 'Zaproszenie wysłane')
+						runAction(() => sendFriendInvite(userId, accessToken), 'Zaproszenie wysłane')
 					}
 				>
 					{busy ? (

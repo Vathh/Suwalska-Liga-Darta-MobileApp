@@ -1,15 +1,5 @@
 import { getPlayerGamesUrl, getPlayerProfileUrl } from './apiConfig';
-
-function authHeaders(accessToken, withJson = false) {
-	const headers = {
-		Accept: 'application/json',
-		Authorization: `Bearer ${accessToken}`,
-	};
-	if (withJson) {
-		headers['Content-Type'] = 'application/json';
-	}
-	return headers;
-}
+import { apiRequest } from './apiClient';
 
 /**
  * @returns {Promise<{ ok: true, data: object } | { ok: false, status: number, message: string }>}
@@ -20,14 +10,11 @@ export async function fetchPlayerProfile(playerId, accessToken) {
 	}
 
 	try {
-		const res = await fetch(getPlayerProfileUrl(playerId), {
-			headers: authHeaders(accessToken),
-		});
-		const data = await res.json().catch(() => ({}));
-		if (!res.ok) {
+		const { ok, status, data } = await apiRequest(getPlayerProfileUrl(playerId), { accessToken });
+		if (!ok) {
 			return {
 				ok: false,
-				status: res.status,
+				status,
 				message: data.message || 'Nie udało się wczytać profilu.',
 			};
 		}
@@ -46,11 +33,8 @@ export async function fetchPlayerGames(playerId, accessToken, page = 1) {
 	}
 
 	try {
-		const res = await fetch(getPlayerGamesUrl(playerId, page), {
-			headers: authHeaders(accessToken),
-		});
-		const data = await res.json().catch(() => ({}));
-		if (!res.ok) {
+		const { ok, data } = await apiRequest(getPlayerGamesUrl(playerId, page), { accessToken });
+		if (!ok) {
 			return {
 				ok: false,
 				message: data.message || 'Nie udało się wczytać historii.',
@@ -71,13 +55,12 @@ export async function updatePlayerProfile(playerId, accessToken, { description }
 	}
 
 	try {
-		const res = await fetch(getPlayerProfileUrl(playerId), {
+		return await apiRequest(getPlayerProfileUrl(playerId), {
 			method: 'PUT',
-			headers: authHeaders(accessToken, true),
-			body: JSON.stringify({ description }),
+			accessToken,
+			json: true,
+			body: { description },
 		});
-		const data = await res.json().catch(() => ({}));
-		return { ok: res.ok, status: res.status, data };
 	} catch {
 		return { ok: false, status: 0, data: { message: 'Błąd połączenia.' } };
 	}

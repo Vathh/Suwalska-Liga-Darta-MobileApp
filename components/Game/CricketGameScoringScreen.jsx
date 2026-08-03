@@ -23,6 +23,7 @@ import {
 import useAuth from '../../hooks/useAuth';
 import { useCricketFfaScoring } from '../../hooks/useCricketFfaScoring';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
+import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
 import CricketCounter from './CricketCounter';
 import GameScoringModals from './GameScoringModals';
 import { gameScoringScreenStyles as styles } from './GameScoringScreen.styles';
@@ -31,7 +32,7 @@ import { colors } from '../../theme/colors';
 /**
  * Scoring cricket: trening lokalny albo quick FFA (one_device / each_own) przez API.
  */
-export default function CricketGameScoringScreen({ route }) {
+export default function CricketGameScoringScreen({ route, navigation }) {
 	const { auth } = useAuth();
 	const isFocused = useIsFocused();
 	const gameCtx = useMemo(
@@ -111,6 +112,17 @@ export default function CricketGameScoringScreen({ route }) {
 		legOpenerIndexRef,
 		onFinishedQuickGameId,
 		reloadKey,
+	});
+
+	useLeaveGameConfirmation({
+		navigation,
+		mode,
+		gameClosed,
+		tournamentGame: null,
+		accessToken: auth?.accessToken,
+		syncEnabled,
+		lobbyId,
+		intentionalFfaLeaveRef,
 	});
 
 	useFfaPresenceHeartbeat({

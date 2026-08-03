@@ -1,4 +1,4 @@
-import { resetVisitDartLabels } from '../reducers/playerResultActions';
+import { resetVisitDartLabels } from '../reducers/playerResultActions.js';
 
 /**
  * Bookkeeping dla trybu rzut-po-rzucie (per-dart): historia rzutów bieżącej wizyty,

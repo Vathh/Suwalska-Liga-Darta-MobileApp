@@ -1,4 +1,4 @@
-import { addAchievement } from '../reducers/achievementActions';
+import { addAchievement } from '../reducers/achievementActions.js';
 
 /**
  * Handlery achievementów (max/170+, highest finish, quick finish) — wydzielone

@@ -435,9 +435,6 @@ const QuickGameLobby = ({ navigation, route }) => {
               })}
             </>
           )}
-          {/* {isHost && invitations.length === 0 && players.length < 2 && (
-            <Text style={styles.hintSmall}>Zaproś znajomych lub dodaj gracza tymczasowego (bez konta).</Text>
-          )} */}
         </View>
       </>
     );
@@ -707,9 +704,6 @@ const styles = StyleSheet.create({
   playersList: {
     marginTop: 8,
   },
-  dragListContainer: {
-    marginTop: 8,
-  },
   reorderButtonSecondary: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -765,11 +759,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 20,
-  },
-  playerRow: {
-    fontSize: 16,
-    color: colors.textMuted,
-    marginVertical: 4,
   },
   emptyPlayersBox: {
     paddingVertical: 20,
@@ -827,10 +816,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.bg,
   },
-  invitationsBox: {
-    marginBottom: 8,
-    paddingVertical: 8,
-  },
   invitationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -845,13 +830,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textMuted,
     fontWeight: '500',
-  },
-  invitationStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  invitationStatusIcon: {
-    marginRight: 6,
   },
   invitationStatusText: {
     fontSize: 13,

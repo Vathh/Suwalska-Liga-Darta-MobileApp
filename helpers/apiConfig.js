@@ -9,8 +9,9 @@
  * wtedy TARGET jest ignorowany.
  */
 
-const LOCAL_HOST =
-	process.env.EXPO_PUBLIC_LOCAL_HOST?.trim() || '192.168.10.94';
+const RAW_LOCAL_HOST = process.env.EXPO_PUBLIC_LOCAL_HOST?.trim();
+// Bez osobistego IP jako cichego domyślnego — brak env = localhost + głośny warning (patrz niżej).
+const LOCAL_HOST = RAW_LOCAL_HOST || '127.0.0.1';
 
 const API_PRESETS = {
 	local: {
@@ -84,6 +85,12 @@ function resolveEnvConfig() {
 }
 
 const envConfig = resolveEnvConfig();
+
+if (envConfig.target === 'local' && !RAW_LOCAL_HOST) {
+	console.warn(
+		'[apiConfig] EXPO_PUBLIC_LOCAL_HOST nie jest ustawione — używam 127.0.0.1, co NIE zadziała z telefonu fizycznego/emulatora w sieci LAN. Ustaw EXPO_PUBLIC_LOCAL_HOST=<IP Twojego komputera w Wi-Fi> w .env (patrz .env.example).',
+	);
+}
 
 const API_BASE_URL = envConfig.apiUrl;
 

@@ -1,4 +1,6 @@
 import { runCricketTests } from '../../cricket/__tests__/cricketRules.test.js';
+import { runAchievementHandlersTests } from './achievementHandlers.test.js';
+import { runDartHistoryTrackerTests } from './dartHistoryTracker.test.js';
 import { applyGameScoringState } from '../applyGameScoringState.js';
 import {
 	computeFfaStateRevision,
@@ -500,6 +502,8 @@ const tests = [
 	['per-dart bust rules', testPerDartBustRules],
 	['offline multi-set scoring', testMatchFormatOfflineScoring],
 	['cricket rules', runCricketTests],
+	['achievement handlers', runAchievementHandlersTests],
+	['dart history tracker', runDartHistoryTrackerTests],
 ];
 
 let passed = 0;

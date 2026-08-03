@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQuickGameLobbyRealtime } from './useQuickGameLobbyRealtime';
 import { fetchQuickGameLobby } from '../helpers/quickGameLobbyApi';
@@ -33,6 +33,7 @@ export function useQuickGameLobbyState({ route, navigation, auth, defaultMatchFo
 	const [invitations, setInvitations] = useState([]); // [{ id, name, status: 'sent'|'accepted'|'rejected' }]
 	const [orderedPlayers, setOrderedPlayers] = useState([]);
 	const [wsLive, setWsLive] = useState(false);
+	const hasNavigatedToGameRef = useRef(false);
 
 	useEffect(() => {
 		loadPersistedMatchFormat('quickGame').then(setMatchFormat);
@@ -50,6 +51,8 @@ export function useQuickGameLobbyState({ route, navigation, auth, defaultMatchFo
 	const applyLobbyData = useCallback((data, fallbackLobbyId = null) => {
 		if (!data) return;
 		if (data.matchInProgress && data.status === 'started' && data.players?.length >= 2) {
+			if (hasNavigatedToGameRef.current) return;
+			hasNavigatedToGameRef.current = true;
 			const players = (data.players || []).map((p) => ({
 				id: p.id,
 				name: p.name ?? p.tempName ?? 'Gracz',

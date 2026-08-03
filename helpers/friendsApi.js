@@ -5,63 +5,35 @@ import {
 	FRIENDS_REMOVE_URL,
 	USERS_SEARCH_URL,
 } from './apiConfig';
-
-function authHeaders(accessToken, withJson = false) {
-	const headers = {
-		Accept: 'application/json',
-		Authorization: `Bearer ${accessToken}`,
-	};
-	if (withJson) {
-		headers['Content-Type'] = 'application/json';
-	}
-	return headers;
-}
-
-async function parseJsonSafe(res) {
-	return res.json().catch(() => ({}));
-}
+import { apiRequest } from './apiClient';
 
 export async function fetchFriends(accessToken) {
-	const res = await fetch(FRIENDS_API_URL, {
-		headers: authHeaders(accessToken),
-	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
+	return apiRequest(FRIENDS_API_URL, { accessToken });
 }
 
 export async function fetchSentFriendInvitations(accessToken) {
-	const res = await fetch(FRIENDS_INVITATIONS_SENT_URL, {
-		headers: authHeaders(accessToken),
-	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
+	return apiRequest(FRIENDS_INVITATIONS_SENT_URL, { accessToken });
 }
 
 export async function searchUsers(query, accessToken) {
 	const url = `${USERS_SEARCH_URL}?q=${encodeURIComponent(query)}`;
-	const res = await fetch(url, {
-		headers: authHeaders(accessToken),
-	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
+	return apiRequest(url, { accessToken });
 }
 
 export async function sendFriendInvite(receiverId, accessToken) {
-	const res = await fetch(FRIENDS_INVITE_URL, {
+	return apiRequest(FRIENDS_INVITE_URL, {
 		method: 'POST',
-		headers: authHeaders(accessToken, true),
-		body: JSON.stringify({ receiverId }),
+		accessToken,
+		json: true,
+		body: { receiverId },
 	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
 }
 
 export async function removeFriend(friendId, accessToken) {
-	const res = await fetch(FRIENDS_REMOVE_URL, {
+	return apiRequest(FRIENDS_REMOVE_URL, {
 		method: 'DELETE',
-		headers: authHeaders(accessToken, true),
-		body: JSON.stringify({ friendId }),
+		accessToken,
+		json: true,
+		body: { friendId },
 	});
-	const data = await parseJsonSafe(res);
-	return { ok: res.ok, status: res.status, data };
 }

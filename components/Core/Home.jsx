@@ -12,31 +12,31 @@ import { colors } from '../../theme/colors'
 const Home = ({ navigation }) => {
 
   const { auth } = useAuth()
-  const [activeMatch, setActiveMatch] = useState(null)
-  const [leavingMatch, setLeavingMatch] = useState(false)
+  const [activeGame, setActiveGame] = useState(null)
+  const [leavingGame, setLeavingGame] = useState(false)
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false
 
       if (!auth?.accessToken) {
-        setActiveMatch(null)
+        setActiveGame(null)
         return () => {
           cancelled = true
         }
       }
 
-      setActiveMatch(null)
+      setActiveGame(null)
 
       resolveActiveFfaGame(auth.accessToken)
-        .then((match) => {
+        .then((game) => {
           if (!cancelled) {
-            setActiveMatch(match)
+            setActiveGame(game)
           }
         })
         .catch(() => {
           if (!cancelled) {
-            setActiveMatch(null)
+            setActiveGame(null)
           }
         })
 
@@ -65,19 +65,19 @@ const Home = ({ navigation }) => {
     }
   }
 
-  const resumeMatchHandler = () => {
-    const params = buildGameScoringParamsFromActiveGame(activeMatch)
+  const resumeGameHandler = () => {
+    const params = buildGameScoringParamsFromActiveGame(activeGame)
     if (params) {
       navigation.navigate('GameScoring', params)
     }
   }
 
-  const leaveMatchHandler = () => {
-    if (!activeMatch?.lobbyId || !auth?.accessToken || leavingMatch) {
+  const leaveGameHandler = () => {
+    if (!activeGame?.lobbyId || !auth?.accessToken || leavingGame) {
       return
     }
 
-    const playerCount = activeMatch?.players?.length ?? 0
+    const playerCount = activeGame?.players?.length ?? 0
     const message =
       playerCount === 2
         ? 'Opuścisz mecz bez możliwości powrotu. Przeciwnik wygra walkowerem — tak samo jak przy wyjściu z ekranu gry.'
@@ -89,14 +89,14 @@ const Home = ({ navigation }) => {
         text: 'Opuść',
         style: 'destructive',
         onPress: async () => {
-          setLeavingMatch(true)
+          setLeavingGame(true)
           try {
-            await postFfaPresence(activeMatch.lobbyId, auth.accessToken, 'left')
+            await postFfaPresence(activeGame.lobbyId, auth.accessToken, 'left')
           } catch {
             // i tak czyścimy lokalny stan — użytkownik chce wyjść
           }
-          setActiveMatch(null)
-          setLeavingMatch(false)
+          setActiveGame(null)
+          setLeavingGame(false)
         },
       },
     ])
@@ -107,8 +107,8 @@ const Home = ({ navigation }) => {
   }
 
   const opponentNames =
-    activeMatch?.players
-      ?.filter((_, index) => index !== activeMatch.myPlayerIndex)
+    activeGame?.players
+      ?.filter((_, index) => index !== activeGame.myPlayerIndex)
       ?.map((p) => p.name)
       ?.join(', ') ?? 'przeciwnikiem'
 
@@ -116,7 +116,7 @@ const Home = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Wybierz tryb gry</Text>
       <View style={styles.form}>
-        {activeMatch ? (
+        {activeGame ? (
           <View style={styles.resumeBlock}>
             <Text style={styles.resumeContext}>
               Quick game z {opponentNames}
@@ -124,18 +124,18 @@ const Home = ({ navigation }) => {
             <View style={styles.resumeRow}>
               <Pressable
                 style={[styles.buttonResume, styles.resumeRowButton]}
-                onPress={resumeMatchHandler}
-                disabled={leavingMatch}
+                onPress={resumeGameHandler}
+                disabled={leavingGame}
               >
                 <Text style={styles.buttonResumeText}>Wróć do meczu</Text>
               </Pressable>
               <Pressable
                 style={[styles.buttonLeave, styles.resumeRowButton]}
-                onPress={leaveMatchHandler}
-                disabled={leavingMatch}
+                onPress={leaveGameHandler}
+                disabled={leavingGame}
               >
                 <Text style={styles.buttonLeaveText}>
-                  {leavingMatch ? 'Opuszczanie…' : 'Opuść'}
+                  {leavingGame ? 'Opuszczanie…' : 'Opuść'}
                 </Text>
               </Pressable>
             </View>
