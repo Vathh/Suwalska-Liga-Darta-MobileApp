@@ -102,8 +102,8 @@ const Home = ({ navigation }) => {
     ])
   }
 
-  const trainingHandler = () => {
-    navigation.navigate('TrainingMatchSetup')
+	const trainingHandler = () => {
+    navigation.navigate('TrainingHub')
   }
 
   const opponentNames =

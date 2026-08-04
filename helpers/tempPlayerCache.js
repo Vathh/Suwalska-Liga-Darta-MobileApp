@@ -26,3 +26,15 @@ export const addCachedTempName = async (name) => {
     console.warn('tempPlayerCache add failed', e);
   }
 };
+
+export const removeCachedTempName = async (name) => {
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  try {
+    const list = await getCachedTempNames();
+    const updated = list.filter((n) => n !== trimmed);
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.warn('tempPlayerCache remove failed', e);
+  }
+};

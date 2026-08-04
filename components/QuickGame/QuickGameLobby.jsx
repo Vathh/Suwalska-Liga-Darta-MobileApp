@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import useAuth from '../../hooks/useAuth';
+import { useLeaveLobbyOnTabPress } from '../../hooks/useLeaveLobbyOnTabPress';
 import {
   QUICK_GAME_GAME_TYPES as GAME_TYPES,
   QUICK_GAME_SCORING_MODES as SCORING_MODES,
@@ -79,6 +80,20 @@ const QuickGameLobby = ({ navigation, route }) => {
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [myReady, setMyReady] = useState(false); // po kliknięciu Gotowy – nie pozwalaj klikać ponownie
   const reverbDiag = getReverbDiagnostics();
+
+  const clearLobbyLocal = useCallback(() => {
+    setLobby(null);
+    setInvitations([]);
+    setMyReady(false);
+    setError('');
+  }, [setLobby, setInvitations]);
+
+  useLeaveLobbyOnTabPress({
+    navigation,
+    lobbyId: lobby?.id ?? null,
+    accessToken: auth?.accessToken,
+    onLeftLobby: clearLobbyLocal,
+  });
 
   const resolveMyPlayerIndex = useCallback((players, fromApi) => {
     if (fromApi !== undefined && fromApi !== null) return fromApi;
@@ -187,7 +202,7 @@ const QuickGameLobby = ({ navigation, route }) => {
     if (!lobby?.id || !auth?.accessToken) return;
     try {
       await leaveQuickGameLobby(lobby.id, auth.accessToken);
-      setLobby(null);
+      clearLobbyLocal();
     } catch (e) {
       console.warn('leave', e);
     }
@@ -269,10 +284,7 @@ const QuickGameLobby = ({ navigation, route }) => {
   };
 
   const backToChoice = () => {
-    setLobby(null);
-    setInvitations([]);
-    setMyReady(false);
-    setError('');
+    clearLobbyLocal();
   };
 
   if (lobby?.id) {

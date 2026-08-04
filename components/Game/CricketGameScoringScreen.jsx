@@ -20,6 +20,7 @@ import {
 	showGameFinishedAlert,
 	showTrainingFinishedAlert,
 } from '../../helpers/gameScoring';
+import { saveCompletedTrainingGame } from '../../helpers/trainingHistory/saveCompletedTrainingGame';
 import useAuth from '../../hooks/useAuth';
 import { useCricketFfaScoring } from '../../hooks/useCricketFfaScoring';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
@@ -144,18 +145,31 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 	}, [isFocused]);
 
 	const finishMatchLocal = useCallback(
-		(winnerIndex) => {
+		(winnerIndex, winnerLegsWon) => {
 			if (matchEndedRef.current) return;
 			matchEndedRef.current = true;
 			setGameClosed(true);
 			const name = players[winnerIndex]?.name ?? 'Zwycięzca';
 			if (mode === GAME_MODE.TRAINING) {
+				const states = cricketStatesRef.current.map((s, i) => ({
+					...s,
+					legsWon:
+						i === winnerIndex
+							? (winnerLegsWon ?? (s?.legsWon ?? 0) + 1)
+							: (s?.legsWon ?? 0),
+				}));
+				void saveCompletedTrainingGame({
+					players,
+					matchFormat,
+					gameType: 'cricket',
+					cricketStates: states,
+				});
 				showTrainingFinishedAlert(name);
 			} else {
 				showGameFinishedAlert(name, { title: 'MECZ ZAKOŃCZONY' });
 			}
 		},
-		[mode, players],
+		[mode, players, matchFormat],
 	);
 
 	const closeLegLocal = useCallback(
@@ -168,7 +182,7 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 				}
 				dartLogRef.current = [];
 				setDartsInVisit(0);
-				finishMatchLocal(winnerIndex);
+				finishMatchLocal(winnerIndex, nextLegs);
 				return;
 			}
 

@@ -10,6 +10,7 @@ import {
 	showGameFinishedAlert,
 	showTrainingFinishedAlert,
 } from '../helpers/gameScoring';
+import { saveCompletedTrainingGame } from '../helpers/trainingHistory/saveCompletedTrainingGame';
 
 /**
  * Efekty końca meczu (quick FFA / trening lokalny / turniej): wysyłka achievementów
@@ -80,6 +81,12 @@ export function useGameFinishedEffects({
 
 		setGameClosed(true);
 		const winnerIdx = findWinnerIndex(playerStates, matchFormat);
+		void saveCompletedTrainingGame({
+			players,
+			playerStates,
+			matchFormat,
+			gameType: matchFormat?.gameType === 'cricket' ? 'cricket' : 'x01',
+		});
 		showTrainingFinishedAlert(players[winnerIdx]?.name);
 	}, [mode, syncEnabled, gameClosed, matchFormat, playerStates, players]);
 

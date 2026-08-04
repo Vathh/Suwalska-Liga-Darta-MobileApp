@@ -139,7 +139,8 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 	}
 
 	const syncEnabled = transport != null;
-	const showStartModal = isTraining || (isQuick && !syncEnabled);
+	// Trening: kolejność ustalana na setupie — bez modala „Kto rozpoczyna”.
+	const showStartModal = isQuick && !syncEnabled;
 
 	const activeGame = isTraining
 		? { id: null, type: 'training', tournamentId: null, groupNumber: null }

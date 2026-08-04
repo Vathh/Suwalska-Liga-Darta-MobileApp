@@ -126,7 +126,7 @@ export function showGameFinishedAlert(winnerName, { title = 'MECZ ZAKOŃCZONY' }
 export function showTrainingFinishedAlert(winnerName) {
 	Alert.alert(
 		'Trening',
-		`Trening zakończony. ${winnerName ?? 'Zwycięzca'} wygrywa mecz.\n\nWynik nie został zapisany.`,
+		`Trening zakończony. ${winnerName ?? 'Zwycięzca'} wygrywa mecz.\n\nWynik zapisano w historii treningów.`,
 		[{ text: 'OK', style: 'default' }],
 	);
 }

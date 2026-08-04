@@ -14,7 +14,10 @@ import JoinTournamentScreen from '../components/Tournament/JoinTournamentScreen'
 import Home from '../components/Core/Home';
 import HomeDashboard from '../components/Core/HomeDashboard';
 import QuickGameLobby from '../components/QuickGame/QuickGameLobby';
+import TrainingHub from '../components/QuickGame/TrainingHub';
 import TrainingMatchSetup from '../components/QuickGame/TrainingMatchSetup';
+import TrainingHistoryList from '../components/QuickGame/TrainingHistoryList';
+import TrainingGameDetail from '../components/QuickGame/TrainingGameDetail';
 import FriendsScreen from '../components/Friends/FriendsScreen';
 import InvitationsScreen from '../components/Invitations/InvitationsScreen';
 import PlayerProfileScreen from '../components/PlayerProfile/PlayerProfileScreen';
@@ -34,6 +37,7 @@ import LogoutButton from '../components/Common/LogoutButton';
 import LoginButton from '../components/Common/LoginButton';
 import { colors } from '../theme/colors';
 
+const RootStack = createNativeStackNavigator();
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -47,16 +51,88 @@ function tabIcon(name) {
 	return ({ color, size }) => <Ionicons name={name} size={size} color={color} />;
 }
 
+const stackScreenOptions = {
+	...headerOptions,
+	headerTitle: (props) => <HeaderTitle {...props} />,
+	headerRight: () => <AccountMenuButton />,
+	contentStyle: { backgroundColor: colors.bg },
+};
+
+function GrajStack() {
+	return (
+		<Stack.Navigator screenOptions={stackScreenOptions}>
+			<Stack.Screen name="GrajHome" component={Home} />
+			<Stack.Screen name="TrainingHub" component={TrainingHub} />
+			<Stack.Screen name="TrainingMatchSetup" component={TrainingMatchSetup} />
+			<Stack.Screen name="TrainingHistory" component={TrainingHistoryList} />
+			<Stack.Screen name="TrainingGameDetail" component={TrainingGameDetail} />
+			<Stack.Screen name="QuickGameLobby" component={QuickGameLobby} />
+			<Stack.Screen name="TournamentCode" component={TournamentCode} />
+			<Stack.Screen name="JoinTournament" component={JoinTournamentScreen} />
+		</Stack.Navigator>
+	);
+}
+
+function RozgrywkiStack() {
+	return (
+		<Stack.Navigator screenOptions={stackScreenOptions}>
+			<Stack.Screen name="RozgrywkiHome" component={CompetitionsScreen} />
+			<Stack.Screen name="LeaguesList" component={LeaguesListScreen} />
+			<Stack.Screen name="SeasonsList" component={SeasonsListScreen} />
+			<Stack.Screen name="TournamentsList" component={TournamentsListScreen} />
+			<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} />
+			<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} />
+			<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} />
+			<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+		</Stack.Navigator>
+	);
+}
+
+function ZnajomiStack() {
+	return (
+		<Stack.Navigator screenOptions={stackScreenOptions}>
+			<Stack.Screen name="ZnajomiHome" component={FriendsScreen} />
+			<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+		</Stack.Navigator>
+	);
+}
+
+function KontoStack() {
+	return (
+		<Stack.Navigator screenOptions={stackScreenOptions}>
+			<Stack.Screen name="KontoHome" component={AccountScreen} />
+			<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+			<Stack.Screen
+				name="EditPlayerProfile"
+				component={EditPlayerProfileScreen}
+				options={{ title: 'Edycja profilu' }}
+			/>
+			<Stack.Screen
+				name="ChangePassword"
+				component={ChangePasswordScreen}
+				options={{ title: 'Zmień hasło' }}
+			/>
+		</Stack.Navigator>
+	);
+}
+
+function HiddenHomeStack() {
+	return (
+		<Stack.Navigator screenOptions={{ headerShown: false }}>
+			<Stack.Screen name="HomeDashboard" component={HomeDashboard} />
+		</Stack.Navigator>
+	);
+}
+
 /** Dolny pasek: Graj / Rozgrywki / Znajomi / Zaproszenia / Konto (+ ukryty Home). */
 function UserMainTabs() {
 	const insets = useSafeAreaInsets();
 	return (
 		<Tab.Navigator
-			initialRouteName="Home"
+			id="UserMainTabs"
+			initialRouteName="Graj"
 			screenOptions={{
-				...headerOptions,
-				headerTitle: (props) => <HeaderTitle {...props} />,
-				headerRight: () => <AccountMenuButton />,
+				headerShown: false,
 				tabBarStyle: {
 					backgroundColor: colors.bg,
 					borderTopColor: colors.border,
@@ -73,14 +149,14 @@ function UserMainTabs() {
 		>
 			<Tab.Screen
 				name="Home"
-				component={HomeDashboard}
+				component={HiddenHomeStack}
 				options={{
 					tabBarButton: () => null,
 				}}
 			/>
 			<Tab.Screen
 				name="Graj"
-				component={Home}
+				component={GrajStack}
 				options={{
 					tabBarLabel: 'Graj',
 					tabBarIcon: tabIcon('play-circle-outline'),
@@ -88,7 +164,7 @@ function UserMainTabs() {
 			/>
 			<Tab.Screen
 				name="Rozgrywki"
-				component={CompetitionsScreen}
+				component={RozgrywkiStack}
 				options={{
 					tabBarLabel: 'Rozgrywki',
 					tabBarIcon: tabIcon('trophy-outline'),
@@ -96,7 +172,7 @@ function UserMainTabs() {
 			/>
 			<Tab.Screen
 				name="Znajomi"
-				component={FriendsScreen}
+				component={ZnajomiStack}
 				options={{
 					tabBarLabel: 'Znajomi',
 					tabBarIcon: tabIcon('people-outline'),
@@ -106,13 +182,17 @@ function UserMainTabs() {
 				name="Zaproszenia"
 				component={InvitationsScreen}
 				options={{
+					...headerOptions,
+					headerShown: true,
+					headerTitle: (props) => <HeaderTitle {...props} />,
+					headerRight: () => <AccountMenuButton />,
 					tabBarLabel: 'Zaproszenia',
 					tabBarIcon: tabIcon('mail-outline'),
 				}}
 			/>
 			<Tab.Screen
 				name="Konto"
-				component={AccountScreen}
+				component={KontoStack}
 				options={{
 					tabBarLabel: 'Konto',
 					tabBarIcon: tabIcon('person-outline'),
@@ -139,12 +219,12 @@ const Screens = () => {
 	// Niezalogowany: Home = widok gry (bez dolnego paska)
 	if (!auth?.accessToken) {
 		return (
-			<Stack.Navigator
+			<RootStack.Navigator
 				key="guest"
 				initialRouteName="Home"
 				screenOptions={{ contentStyle: paddedContent }}
 			>
-				<Stack.Screen
+				<RootStack.Screen
 					name="Home"
 					component={Home}
 					options={{
@@ -153,27 +233,27 @@ const Screens = () => {
 						headerRight: () => <LoginButton />,
 					}}
 				/>
-				<Stack.Screen
+				<RootStack.Screen
 					name="AccountLogin"
 					component={TournamentLogin}
 					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
 				/>
-				<Stack.Screen
+				<RootStack.Screen
 					name="AccountRegister"
 					component={AccountRegister}
 					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
 				/>
-				<Stack.Screen
+				<RootStack.Screen
 					name="TournamentCode"
 					component={TournamentCode}
 					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
 				/>
-				<Stack.Screen
+				<RootStack.Screen
 					name="JoinTournament"
 					component={JoinTournamentScreen}
 					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
 				/>
-				<Stack.Screen
+				<RootStack.Screen
 					name="QuickGameLobby"
 					component={QuickGameLobby}
 					options={{
@@ -182,75 +262,67 @@ const Screens = () => {
 						headerRight: () => <LoginButton />,
 					}}
 				/>
-				<Stack.Screen
+				<RootStack.Screen
+					name="TrainingHub"
+					component={TrainingHub}
+					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
+				/>
+				<RootStack.Screen
 					name="TrainingMatchSetup"
 					component={TrainingMatchSetup}
 					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
 				/>
-				<Stack.Screen
+				<RootStack.Screen
+					name="TrainingHistory"
+					component={TrainingHistoryList}
+					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
+				/>
+				<RootStack.Screen
+					name="TrainingGameDetail"
+					component={TrainingGameDetail}
+					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
+				/>
+				<RootStack.Screen
 					name="GameScoring"
 					component={GameScoringScreen}
 					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
 				/>
-			</Stack.Navigator>
+			</RootStack.Navigator>
 		);
 	}
 
-	// Zalogowany na konto: taby + stack na flow (lobby, scoring, …)
+	// Zalogowany na konto: taby z zagnieżdżonymi stackami (tab bar widoczny wszędzie
+	// poza GameScoring na root stacku).
 	if (auth?.accessToken && !auth?.tournamentId) {
-		const flowOptions = {
-			...headerOptions,
-			headerTitle: (props) => <HeaderTitle {...props} />,
-			headerRight: () => <AccountMenuButton />,
-			contentStyle: paddedContent,
-		};
 		return (
-			<Stack.Navigator key="user" initialRouteName="MainTabs">
-				<Stack.Screen
+			<RootStack.Navigator key="user" initialRouteName="MainTabs">
+				<RootStack.Screen
 					name="MainTabs"
 					component={UserMainTabs}
 					options={{ headerShown: false }}
 				/>
-				<Stack.Screen name="QuickGameLobby" component={QuickGameLobby} options={flowOptions} />
-				<Stack.Screen name="TrainingMatchSetup" component={TrainingMatchSetup} options={flowOptions} />
-				<Stack.Screen name="GameScoring" component={GameScoringScreen} options={flowOptions} />
-				<Stack.Screen name="TournamentCode" component={TournamentCode} options={flowOptions} />
-				<Stack.Screen name="JoinTournament" component={JoinTournamentScreen} options={flowOptions} />
-				<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} options={flowOptions} />
-				<Stack.Screen
-					name="EditPlayerProfile"
-					component={EditPlayerProfileScreen}
+				<RootStack.Screen
+					name="GameScoring"
+					component={GameScoringScreen}
 					options={{
-						...flowOptions,
-						title: 'Edycja profilu',
+						...headerOptions,
+						headerTitle: (props) => <HeaderTitle {...props} />,
+						headerRight: () => <AccountMenuButton />,
+						contentStyle: { backgroundColor: colors.bg },
 					}}
 				/>
-				<Stack.Screen
-					name="ChangePassword"
-					component={ChangePasswordScreen}
-					options={{
-						...flowOptions,
-						title: 'Zmień hasło',
-					}}
-				/>
-				<Stack.Screen name="LeaguesList" component={LeaguesListScreen} options={flowOptions} />
-				<Stack.Screen name="SeasonsList" component={SeasonsListScreen} options={flowOptions} />
-				<Stack.Screen name="TournamentsList" component={TournamentsListScreen} options={flowOptions} />
-				<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} options={flowOptions} />
-				<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} options={flowOptions} />
-				<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} options={flowOptions} />
-			</Stack.Navigator>
+			</RootStack.Navigator>
 		);
 	}
 
 	// Zalogowany kodem turnieju: tylko lista meczów i rozgrywka (widok turniejowy)
 	return (
-		<Stack.Navigator
+		<RootStack.Navigator
 			key="tournament"
 			initialRouteName="GameList"
 			screenOptions={{ contentStyle: paddedContent }}
 		>
-			<Stack.Screen
+			<RootStack.Screen
 				name="GameList"
 				component={GameList}
 				options={{
@@ -259,7 +331,7 @@ const Screens = () => {
 					headerRight: () => <LogoutButton />,
 				}}
 			/>
-			<Stack.Screen
+			<RootStack.Screen
 				name="GameScoring"
 				component={GameScoringScreen}
 				options={{
@@ -268,7 +340,7 @@ const Screens = () => {
 					headerRight: () => <LogoutButton />,
 				}}
 			/>
-		</Stack.Navigator>
+		</RootStack.Navigator>
 	);
 };
 

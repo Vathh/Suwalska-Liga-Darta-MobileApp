@@ -113,7 +113,10 @@ const InvitationsScreen = ({ navigation, route }) => {
     try {
       const { ok, data } = await joinQuickGameLobby(inv.lobbyId, auth.accessToken);
       if (ok && data?.id) {
-        navigation.navigate('QuickGameLobby', { initialLobby: data });
+        navigation.navigate('Graj', {
+          screen: 'QuickGameLobby',
+          params: { initialLobby: data },
+        });
       } else {
         Alert.alert('Błąd', data?.message || 'Nie udało się dołączyć do lobby.');
       }
