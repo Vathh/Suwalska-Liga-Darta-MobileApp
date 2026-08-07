@@ -9,6 +9,7 @@ import React, {
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useIsFocused } from '@react-navigation/native';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playerResultReducer } from '../../helpers/reducers/playerResultReducer';
 import {
   appendDartLabel,
@@ -61,6 +62,7 @@ import CricketGameScoringScreen from './CricketGameScoringScreen';
 const GameScoringScreen = ({ route, navigation }) => {
 	const { auth, setAuth } = useAuth();
 	const isFocused = useIsFocused();
+	const insets = useSafeAreaInsets();
 	const {
 		scoringMode,
 		setScoringMode,
@@ -973,7 +975,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 	}
 
 	return (
-		<View style={styles.container}>
+		<View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
 			<GameScoringModals
 				isOpenerModalVisible={isModalVisible}
 				players={players}

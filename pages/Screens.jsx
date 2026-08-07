@@ -285,7 +285,12 @@ const Screens = () => {
 				<RootStack.Screen
 					name="GameScoring"
 					component={GameScoringScreen}
-					options={{ ...headerOptions, headerTitle: (props) => <HeaderTitle {...props} /> }}
+					options={{
+						...headerOptions,
+						headerTitle: (props) => <HeaderTitle {...props} />,
+						// Bottom inset obsługuje GameScoringScreen — bez podwójnego paddingu.
+						contentStyle: { backgroundColor: colors.bg },
+					}}
 				/>
 			</RootStack.Navigator>
 		);
@@ -338,6 +343,7 @@ const Screens = () => {
 					...headerOptions,
 					headerTitle: (props) => <HeaderTitle {...props} />,
 					headerRight: () => <LogoutButton />,
+					contentStyle: { backgroundColor: colors.bg },
 				}}
 			/>
 		</RootStack.Navigator>

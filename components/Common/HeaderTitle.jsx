@@ -1,31 +1,12 @@
-import React, { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
-import { Asset } from 'expo-asset'
+import React from 'react'
+import { Pressable, StyleSheet } from 'react-native'
 import { SvgXml } from 'react-native-svg'
+import brandNapisXml from '../../assets/brandNapisXml'
 import { navigate, navigationRef } from '../../helpers/navigationRef'
 
 /** Proporcje napis.svg ~1550×180 */
 const WORDMARK_HEIGHT = 18
 const WORDMARK_WIDTH = Math.round((1550 / 180) * WORDMARK_HEIGHT)
-
-let cachedXml = null
-let loadPromise = null
-
-function loadBrandNapisXml() {
-	if (cachedXml) {
-		return Promise.resolve(cachedXml)
-	}
-	if (!loadPromise) {
-		loadPromise = (async () => {
-			const asset = Asset.fromModule(require('../../assets/brand-napis.svg'))
-			await asset.downloadAsync()
-			const res = await fetch(asset.localUri || asset.uri)
-			cachedXml = await res.text()
-			return cachedXml
-		})()
-	}
-	return loadPromise
-}
 
 function rootHasRoute(state, name) {
 	if (!state?.routes) {
@@ -54,26 +35,12 @@ function goToHome() {
 	}
 }
 
+/**
+ * Wordmark w headerze. SVG jest osadzone w bundlu (`brandNapisXml.js`),
+ * nie przez expo-asset + fetch — na Androidzie w release APK URI assetu
+ * często nie jest prawdziwym plikiem (ten sam problem co przy intro).
+ */
 const HeaderTitle = () => {
-	const [xml, setXml] = useState(cachedXml)
-
-	useEffect(() => {
-		if (xml) {
-			return undefined
-		}
-		let cancelled = false
-		loadBrandNapisXml()
-			.then((value) => {
-				if (!cancelled) {
-					setXml(value)
-				}
-			})
-			.catch(() => {})
-		return () => {
-			cancelled = true
-		}
-	}, [xml])
-
 	return (
 		<Pressable
 			onPress={goToHome}
@@ -82,11 +49,7 @@ const HeaderTitle = () => {
 			accessibilityLabel="twentysix — strona główna"
 			style={styles.wrap}
 		>
-			{xml ? (
-				<SvgXml xml={xml} width={WORDMARK_WIDTH} height={WORDMARK_HEIGHT} />
-			) : (
-				<View style={styles.placeholder} />
-			)}
+			<SvgXml xml={brandNapisXml} width={WORDMARK_WIDTH} height={WORDMARK_HEIGHT} />
 		</Pressable>
 	)
 }
@@ -96,10 +59,6 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'flex-start',
 		paddingVertical: 4,
-	},
-	placeholder: {
-		width: WORDMARK_WIDTH,
-		height: WORDMARK_HEIGHT,
 	},
 })
 

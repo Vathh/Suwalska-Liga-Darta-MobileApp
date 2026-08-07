@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useIsFocused } from '@react-navigation/native';
 import { Alert, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
 	CRICKET_APPLY,
 	CRICKET_LEG_RESET,
@@ -36,6 +37,7 @@ import { colors } from '../../theme/colors';
 export default function CricketGameScoringScreen({ route, navigation }) {
 	const { auth } = useAuth();
 	const isFocused = useIsFocused();
+	const insets = useSafeAreaInsets();
 	const gameCtx = useMemo(
 		() => resolveGameContext(route.params, auth),
 		[route.params, auth],
@@ -332,7 +334,7 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 	};
 
 	return (
-		<View style={styles.container}>
+		<View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
 			<GameScoringModals
 				isOpenerModalVisible={isModalVisible}
 				players={players}

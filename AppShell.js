@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
-import { Linking, Platform, StatusBar as RNStatusBar, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { ExpoKeepAwakeTag, deactivateKeepAwake } from 'expo-keep-awake';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthProvider';
 import PushNotificationsBootstrap from './components/Common/PushNotificationsBootstrap';
 import Screens from './pages/Screens';
@@ -65,16 +64,12 @@ function useJoinTournamentDeepLink() {
 export default function AppShell() {
 	useAllowScreenSleepOutsideScoring();
 	useJoinTournamentDeepLink();
-	const insets = useSafeAreaInsets();
-	const topInset =
-		insets.top > 0
-			? insets.top
-			: Platform.OS === 'android'
-				? (RNStatusBar.currentHeight ?? 24)
-				: 0;
 
+	// Bez ręcznego paddingTop: na Androidzie (Expo 54 edge-to-edge)
+	// native stack już dokłada inset do headera — dodatkowy padding dawał
+	// podwójną lukę pod paskiem statusu.
 	return (
-		<View style={[styles.container, { paddingTop: topInset }]}>
+		<View style={styles.container}>
 			<GestureHandlerRootView style={styles.gesture}>
 				<StatusBar style="light" />
 				<NavigationContainer ref={navigationRef} linking={linking}>
