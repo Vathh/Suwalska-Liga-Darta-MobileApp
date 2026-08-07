@@ -257,7 +257,7 @@ const Counter = ({
               onPress={modifier === 'triple' ? undefined : () => applyDartValue(25)}
               disabled={modifier === 'triple'}
             >
-              <Text style={[styles.dartBullText, modifier === 'triple' && styles.dartBullTextDisabled]}>Bull</Text>
+              <Text style={[styles.dartBullText, modifier === 'triple' && styles.dartBullTextDisabled]}>25</Text>
             </Pressable>
           </View>
         </View>
