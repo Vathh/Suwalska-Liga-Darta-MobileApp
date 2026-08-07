@@ -7,7 +7,7 @@ import { postFfaPresence } from '../helpers/quickGameFfaApi';
 /**
  * Potwierdzenie wyjścia z ekranu scoringu — zwalnia mecz turniejowy / oznacza
  * obecność FFA jako „left”, zanim nawigacja faktycznie przejdzie dalej.
- * Wydzielone z GameScoringScreen (beforeRemove listener bez zmiany zachowania).
+ * Po zakończeniu meczu (gameClosed) wyjście bez dodatkowego alertu.
  */
 export function useLeaveGameConfirmation({
 	navigation,
@@ -22,6 +22,10 @@ export function useLeaveGameConfirmation({
 	useEffect(
 		() =>
 			navigation.addListener('beforeRemove', (e) => {
+				if (gameClosed) {
+					return;
+				}
+
 				e.preventDefault();
 
 				Alert.alert('UWAGA', 'Czy na pewno chcesz opuścić mecz?', [
@@ -32,7 +36,6 @@ export function useLeaveGameConfirmation({
 						onPress: async () => {
 							if (
 								mode === GAME_MODE.TOURNAMENT &&
-								!gameClosed &&
 								tournamentGame?.id &&
 								accessToken
 							) {
@@ -45,7 +48,6 @@ export function useLeaveGameConfirmation({
 							if (
 								mode === GAME_MODE.QUICK_FFA &&
 								syncEnabled &&
-								!gameClosed &&
 								lobbyId &&
 								accessToken
 							) {

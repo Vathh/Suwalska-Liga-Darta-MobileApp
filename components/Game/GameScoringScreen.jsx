@@ -29,12 +29,14 @@ import Counter from './Counter';
 import Stats from './Stats';
 import Settings from '../Core/Settings';
 import GameScoringModals from './GameScoringModals';
+import GameFinishedModal from './GameFinishedModal';
 import { gameScoringScreenStyles as styles } from './GameScoringScreen.styles';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import useAuth from '../../hooks/useAuth';
 import { useGameScoring } from '../../hooks/useGameScoring';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
 import { useGameFinishedEffects } from '../../hooks/useGameFinishedEffects';
+import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
 import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
 import {
 	promptTournamentFinishedLogout,
@@ -406,6 +408,16 @@ const GameScoringScreen = ({ route, navigation }) => {
 		};
 	}, [isFocused, gameClosed]);
 
+	const { finishedModalProps, showFinished } = useGameFinishedModal({
+		navigation,
+		mode,
+		isHost,
+		lobbyId,
+		accessToken: auth?.accessToken,
+		players,
+		matchFormat,
+	});
+
 	useGameFinishedEffects({
 		mode,
 		gameClosed,
@@ -420,6 +432,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		finishedQuickGameIdRef: gameScoring.finishedQuickGameIdRef,
 		activeGame,
 		N,
+		onFinished: showFinished,
 	});
 
 	const toggleModal = () => {
@@ -987,6 +1000,8 @@ const GameScoringScreen = ({ route, navigation }) => {
 				scoringBusy={scoringBusy}
 				scoringBusyLabel={scoringBusyLabel}
 			/>
+
+			<GameFinishedModal {...finishedModalProps} />
 
 			<View style={styles.navigationContainer}>
 				<Pressable

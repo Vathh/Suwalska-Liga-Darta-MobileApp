@@ -18,15 +18,15 @@ import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
 import {
 	GAME_MODE,
 	resolveGameContext,
-	showGameFinishedAlert,
-	showTrainingFinishedAlert,
 } from '../../helpers/gameScoring';
 import { saveCompletedTrainingGame } from '../../helpers/trainingHistory/saveCompletedTrainingGame';
 import useAuth from '../../hooks/useAuth';
 import { useCricketFfaScoring } from '../../hooks/useCricketFfaScoring';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
+import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
 import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
 import CricketCounter from './CricketCounter';
+import GameFinishedModal from './GameFinishedModal';
 import GameScoringModals from './GameScoringModals';
 import { gameScoringScreenStyles as styles } from './GameScoringScreen.styles';
 import { colors } from '../../theme/colors';
@@ -86,6 +86,16 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 	const cricketStatesRef = useRef(cricketStates);
 	cricketStatesRef.current = cricketStates;
 
+	const { finishedModalProps, showFinished } = useGameFinishedModal({
+		navigation,
+		mode,
+		isHost,
+		lobbyId,
+		accessToken: auth?.accessToken,
+		players,
+		matchFormat,
+	});
+
 	const onFinishedQuickGameId = useCallback(() => {
 		if (matchEndedRef.current) return;
 		matchEndedRef.current = true;
@@ -95,8 +105,8 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 			0,
 		);
 		const name = players[winnerIdx]?.name ?? 'Zwycięzca';
-		showGameFinishedAlert(name, { title: 'MECZ ZAKOŃCZONY' });
-	}, [players]);
+		showFinished({ winnerName: name, kind: 'quick' });
+	}, [players, showFinished]);
 
 	const {
 		busy,
@@ -166,12 +176,12 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 					gameType: 'cricket',
 					cricketStates: states,
 				});
-				showTrainingFinishedAlert(name);
+				showFinished({ winnerName: name, kind: 'training' });
 			} else {
-				showGameFinishedAlert(name, { title: 'MECZ ZAKOŃCZONY' });
+				showFinished({ winnerName: name, kind: 'quick' });
 			}
 		},
-		[mode, players, matchFormat],
+		[mode, players, matchFormat, showFinished],
 	);
 
 	const closeLegLocal = useCallback(
@@ -346,6 +356,8 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 				scoringBusy={busy}
 				scoringBusyLabel="Zapisywanie rzutu…"
 			/>
+
+			<GameFinishedModal {...finishedModalProps} />
 
 			<View style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
 				<Text style={{ color: colors.textDim, textAlign: 'center', fontSize: 13 }}>

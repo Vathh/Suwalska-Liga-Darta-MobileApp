@@ -7,14 +7,13 @@ import {
 	sendQuickGameAchievements,
 	sendTournamentAchievements,
 	shouldHandleLocalTrainingWin,
-	showGameFinishedAlert,
-	showTrainingFinishedAlert,
 } from '../helpers/gameScoring';
 import { saveCompletedTrainingGame } from '../helpers/trainingHistory/saveCompletedTrainingGame';
+import { finishedKindForMode } from './useGameFinishedModal';
 
 /**
  * Efekty końca meczu (quick FFA / trening lokalny / turniej): wysyłka achievementów
- * i alert zwycięzcy. Wydzielone z GameScoringScreen bez zmiany logiki/warunków.
+ * i pokazanie modala zwycięzcy.
  */
 export function useGameFinishedEffects({
 	mode,
@@ -30,9 +29,11 @@ export function useGameFinishedEffects({
 	finishedQuickGameIdRef,
 	activeGame,
 	N,
+	onFinished,
 }) {
 	const quickResultSentRef = useRef(false);
 	const tournamentResultSentRef = useRef(false);
+	const trainingFinishedShownRef = useRef(false);
 
 	useEffect(() => {
 		if (!gameClosed || mode !== GAME_MODE.QUICK_FFA) return;
@@ -51,8 +52,9 @@ export function useGameFinishedEffects({
 		}
 
 		const winnerIdx = findWinnerIndex(playerStates, matchFormat);
-		showGameFinishedAlert(players[winnerIdx]?.name, {
-			title: 'Mecz zakończony',
+		onFinished?.({
+			winnerName: players[winnerIdx]?.name,
+			kind: finishedKindForMode(mode),
 		});
 	}, [
 		gameClosed,
@@ -64,6 +66,7 @@ export function useGameFinishedEffects({
 		playerStates,
 		matchFormat,
 		finishedQuickGameIdRef,
+		onFinished,
 	]);
 
 	useEffect(() => {
@@ -77,8 +80,9 @@ export function useGameFinishedEffects({
 		) {
 			return;
 		}
-		if (gameClosed) return;
+		if (gameClosed || trainingFinishedShownRef.current) return;
 
+		trainingFinishedShownRef.current = true;
 		setGameClosed(true);
 		const winnerIdx = findWinnerIndex(playerStates, matchFormat);
 		void saveCompletedTrainingGame({
@@ -87,8 +91,20 @@ export function useGameFinishedEffects({
 			matchFormat,
 			gameType: matchFormat?.gameType === 'cricket' ? 'cricket' : 'x01',
 		});
-		showTrainingFinishedAlert(players[winnerIdx]?.name);
-	}, [mode, syncEnabled, gameClosed, matchFormat, playerStates, players]);
+		onFinished?.({
+			winnerName: players[winnerIdx]?.name,
+			kind: 'training',
+		});
+	}, [
+		mode,
+		syncEnabled,
+		gameClosed,
+		matchFormat,
+		playerStates,
+		players,
+		setGameClosed,
+		onFinished,
+	]);
 
 	useEffect(() => {
 		if (!gameClosed || mode !== GAME_MODE.TOURNAMENT || !syncEnabled) return;
@@ -108,7 +124,10 @@ export function useGameFinishedEffects({
 				matchFormat,
 			});
 		}
-		showGameFinishedAlert(players[winnerIdx]?.name);
+		onFinished?.({
+			winnerName: players[winnerIdx]?.name,
+			kind: 'tournament',
+		});
 	}, [
 		gameClosed,
 		mode,
@@ -120,5 +139,6 @@ export function useGameFinishedEffects({
 		players,
 		playerStates,
 		N,
+		onFinished,
 	]);
 }

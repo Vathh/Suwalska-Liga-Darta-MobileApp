@@ -6,6 +6,8 @@ import {
 	getQuickGameLobbyStartUrl,
 	getQuickGameLobbyInviteUrl,
 	getQuickGameLobbyAddGuestUrl,
+	getQuickGameLobbyRematchUrl,
+	getQuickGameLobbyRematchIntentUrl,
 } from './apiConfig';
 import { apiRequest } from './apiClient';
 
@@ -72,5 +74,29 @@ export async function startQuickGameLobby(lobbyId, accessToken, payload) {
 		accessToken,
 		json: true,
 		body: payload,
+	});
+}
+
+export async function expressQuickGameRematchIntent(lobbyId, accessToken) {
+	return apiRequest(getQuickGameLobbyRematchIntentUrl(lobbyId), {
+		method: 'POST',
+		accessToken,
+		json: true,
+		body: {},
+	});
+}
+
+export async function createQuickGameRematch(lobbyId, accessToken) {
+	return apiRequest(getQuickGameLobbyRematchUrl(lobbyId), {
+		method: 'POST',
+		accessToken,
+		json: true,
+		body: {},
+	});
+}
+
+export async function fetchQuickGameRematchStatus(lobbyId, accessToken) {
+	return apiRequest(getQuickGameLobbyRematchUrl(lobbyId), {
+		accessToken,
 	});
 }

@@ -118,12 +118,14 @@ export async function sendQuickGameAchievements({
 }
 
 export function showGameFinishedAlert(winnerName, { title = 'MECZ ZAKOŃCZONY' } = {}) {
+	// Legacy — UI końca meczu jest w GameFinishedModal.
 	Alert.alert(title, `${winnerName ?? 'Zwycięzca'} wygrywa mecz.`, [
 		{ text: 'OK', style: 'default' },
 	]);
 }
 
 export function showTrainingFinishedAlert(winnerName) {
+	// Legacy — UI końca meczu jest w GameFinishedModal.
 	Alert.alert(
 		'Trening',
 		`Trening zakończony. ${winnerName ?? 'Zwycięzca'} wygrywa mecz.\n\nWynik zapisano w historii treningów.`,

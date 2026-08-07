@@ -31,7 +31,7 @@ import { colors } from '../../theme/colors';
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 8;
 
-const TrainingMatchSetup = ({ navigation }) => {
+const TrainingMatchSetup = ({ navigation, route }) => {
 	const [players, setPlayers] = useState([]);
 	const [playersLoaded, setPlayersLoaded] = useState(false);
 	const [matchFormat, setMatchFormat] = useState(DEFAULT_MATCH_FORMAT);
@@ -41,12 +41,29 @@ const TrainingMatchSetup = ({ navigation }) => {
 	const [selectedNames, setSelectedNames] = useState([]);
 
 	React.useEffect(() => {
+		const prefill = route?.params?.prefill;
+		if (prefill) {
+			if (Array.isArray(prefill.players) && prefill.players.length > 0) {
+				setPlayers(
+					prefill.players.map((p, i) => ({
+						id: p.id ?? Date.now() + i,
+						name: p.name,
+					})),
+				);
+			}
+			if (prefill.matchFormat) {
+				setMatchFormat(normalizeMatchFormat(prefill.matchFormat));
+			}
+			setPlayersLoaded(true);
+			return;
+		}
+
 		loadPersistedMatchFormat('training').then(setMatchFormat);
 		loadPersistedTrainingPlayers().then((list) => {
 			setPlayers(list);
 			setPlayersLoaded(true);
 		});
-	}, []);
+	}, [route?.params?.prefill]);
 
 	React.useEffect(() => {
 		if (!playersLoaded) return;

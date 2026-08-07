@@ -233,6 +233,10 @@ export const getQuickGameLobbyRejectInvitationUrl = (invitationId) =>
 const LOBBY_ADD_GUEST = '/add-guest';
 export const getQuickGameLobbyAddGuestUrl = (lobbyId) =>
 	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + LOBBY_ADD_GUEST;
+export const getQuickGameLobbyRematchUrl = (lobbyId) =>
+	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/rematch';
+export const getQuickGameLobbyRematchIntentUrl = (lobbyId) =>
+	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/rematch/intent';
 
 export const getQuickGameFfaStateUrl = (lobbyId) =>
 	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/state';
