@@ -30,7 +30,8 @@ export function inferCurrentPlayerIndex({
 			(p) => pid(p.playerId ?? p.id) === lastPid,
 		);
 		if (lastIdx >= 0) {
-			if (last.bust || !isVisitComplete(last)) {
+			// Bust też kończy wizytę — kolejka idzie do następnego gracza.
+			if (!isVisitComplete(last)) {
 				return lastIdx;
 			}
 			return (lastIdx + 1) % N;

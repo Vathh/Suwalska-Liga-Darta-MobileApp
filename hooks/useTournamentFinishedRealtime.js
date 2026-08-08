@@ -13,6 +13,8 @@ const promptedTournamentIds = new Set();
 
 /**
  * Subskrypcja zakończenia turnieju — wylogowanie tabletu sędziowskiego.
+ * Na liście meczów: od razu. Na ekranie scoringu: odłóż do wyjścia z meczu
+ * (żeby dało się obejrzeć statystyki po finale).
  */
 export function useTournamentFinishedRealtime({
 	tournamentId,
@@ -75,6 +77,14 @@ export function useTournamentFinishedRealtime({
 			}
 		};
 	}, [enabled, tournamentId]);
+}
+
+/** Oznacza turniej jako „już obsłużony”, żeby lista meczów nie pokazała drugiego alerta. */
+export function markTournamentFinishedPrompted(tournamentId) {
+	const id = Number(tournamentId);
+	if (Number.isFinite(id)) {
+		promptedTournamentIds.add(id);
+	}
 }
 
 export function promptTournamentFinishedLogout(setAuth, tournamentId, message) {

@@ -16,6 +16,7 @@ import { tournamentAfterLegClose } from './fixtures/tournamentAfterLegClose.js';
 import { ffaAfterVisit } from './fixtures/ffaAfterVisit.js';
 import { ffaPartialVisit } from './fixtures/ffaPartialVisit.js';
 import { evaluatePerDartVisitAfterDart } from '../../perDartVisitRules.js';
+import { inferCurrentPlayerIndex } from '../inferCurrentPlayerIndex.js';
 import {
 	applyLegWinScores,
 	matchScoreForDisplay,
@@ -487,6 +488,43 @@ function testMatchFormatOfflineScoring() {
 	assert(isMatchWon(state, format), 'match won after two sets');
 }
 
+function testInferAdvancesAfterBust() {
+	const players = [{ playerId: 10 }, { playerId: 20 }];
+	const afterBust = inferCurrentPlayerIndex({
+		players,
+		N: 2,
+		visits: [
+			{
+				playerId: 10,
+				score: 0,
+				dartsInVisit: 1,
+				bust: true,
+				closedLeg: false,
+			},
+		],
+		legOpenerIndex: 0,
+		legOpen: true,
+	});
+	assert(afterBust === 1, 'bust ends turn — next player');
+
+	const partial = inferCurrentPlayerIndex({
+		players,
+		N: 2,
+		visits: [
+			{
+				playerId: 10,
+				score: 40,
+				dartsInVisit: 2,
+				bust: false,
+				closedLeg: false,
+			},
+		],
+		legOpenerIndex: 0,
+		legOpen: true,
+	});
+	assert(partial === 0, 'incomplete visit keeps current player');
+}
+
 const tests = [
 	['normalize tournament', testNormalizeTournament],
 	['tournament revision fast visits', testTournamentRevisionMonotonicOnFastVisits],
@@ -500,6 +538,7 @@ const tests = [
 	['ffa partial visit sync', testApplyFfaPartialVisitPreservesLocalLegScores],
 	['unified API payload', testUnifiedApiPayload],
 	['per-dart bust rules', testPerDartBustRules],
+	['infer advances after bust', testInferAdvancesAfterBust],
 	['offline multi-set scoring', testMatchFormatOfflineScoring],
 	['cricket rules', runCricketTests],
 	['achievement handlers', runAchievementHandlersTests],

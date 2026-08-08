@@ -39,7 +39,7 @@ import { useGameFinishedEffects } from '../../hooks/useGameFinishedEffects';
 import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
 import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
 import {
-	promptTournamentFinishedLogout,
+	markTournamentFinishedPrompted,
 	useTournamentFinishedRealtime,
 } from '../../hooks/useTournamentFinishedRealtime';
 import {
@@ -109,15 +109,23 @@ const GameScoringScreen = ({ route, navigation }) => {
 	const tournamentIdForSession =
 		auth?.tournamentId ?? activeGame?.tournamentId ?? tournamentGame?.tournamentId ?? null;
 
+	/** Po finale turnieju nie wylogowuj od razu — najpierw modal meczu + statystyki. */
+	const pendingTournamentLogoutRef = useRef(false);
+
+	const logoutAfterTournamentIfNeeded = useCallback(() => {
+		if (!pendingTournamentLogoutRef.current) {
+			return;
+		}
+		pendingTournamentLogoutRef.current = false;
+		setAuth({});
+	}, [setAuth]);
+
 	useTournamentFinishedRealtime({
 		tournamentId: tournamentIdForSession,
 		enabled: isTournamentOnline && !!auth?.accessToken && tournamentIdForSession != null,
-		onFinished: (payload) => {
-			promptTournamentFinishedLogout(
-				setAuth,
-				tournamentIdForSession,
-				payload?.message,
-			);
+		onFinished: () => {
+			pendingTournamentLogoutRef.current = true;
+			markTournamentFinishedPrompted(tournamentIdForSession);
 		},
 	});
 
@@ -418,6 +426,16 @@ const GameScoringScreen = ({ route, navigation }) => {
 		matchFormat,
 	});
 
+	const showMatchFinished = useCallback(
+		(args) => {
+			showFinished({
+				...args,
+				tournamentEnded: pendingTournamentLogoutRef.current,
+			});
+		},
+		[showFinished],
+	);
+
 	useGameFinishedEffects({
 		mode,
 		gameClosed,
@@ -432,7 +450,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		finishedQuickGameIdRef: gameScoring.finishedQuickGameIdRef,
 		activeGame,
 		N,
-		onFinished: showFinished,
+		onFinished: showMatchFinished,
 	});
 
 	const toggleModal = () => {
@@ -935,6 +953,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		syncEnabled,
 		lobbyId,
 		intentionalFfaLeaveRef,
+		onClosedLeave: logoutAfterTournamentIfNeeded,
 	});
 
 	useFfaPresenceHeartbeat({
@@ -1001,7 +1020,17 @@ const GameScoringScreen = ({ route, navigation }) => {
 				scoringBusyLabel={scoringBusyLabel}
 			/>
 
-			<GameFinishedModal {...finishedModalProps} />
+			<GameFinishedModal
+				{...finishedModalProps}
+				onLeave={() => {
+					if (pendingTournamentLogoutRef.current) {
+						finishedModalProps.onStay();
+						logoutAfterTournamentIfNeeded();
+						return;
+					}
+					finishedModalProps.onLeave();
+				}}
+			/>
 
 			<View style={styles.navigationContainer}>
 				<Pressable

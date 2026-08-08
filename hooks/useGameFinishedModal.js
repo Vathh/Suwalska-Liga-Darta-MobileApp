@@ -55,7 +55,7 @@ export function useGameFinishedModal({
 		[navigation],
 	);
 
-	const showFinished = useCallback(({ winnerName, kind }) => {
+	const showFinished = useCallback(({ winnerName, kind, tournamentEnded = false }) => {
 		navigatedRef.current = false;
 		waitingRef.current = false;
 		setErrorMessage(null);
@@ -75,7 +75,12 @@ export function useGameFinishedModal({
 		} else {
 			setVariant('tournament');
 			setTitle('Mecz zakończony');
-			setMessage(`${winnerName ?? 'Zwycięzca'} wygrywa mecz.`);
+			const base = `${winnerName ?? 'Zwycięzca'} wygrywa mecz.`;
+			setMessage(
+				tournamentEnded
+					? `${base}\n\nTurniej zakończony — możesz jeszcze obejrzeć statystyki.`
+					: base,
+			);
 		}
 		setVisible(true);
 	}, []);
