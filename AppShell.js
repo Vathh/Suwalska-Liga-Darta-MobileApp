@@ -20,6 +20,12 @@ const linking = {
 					code: (code) => String(code ?? '').toUpperCase(),
 				},
 			},
+			TournamentCode: {
+				path: 'tablet-login/:code',
+				parse: {
+					code: (code) => String(code ?? '').toUpperCase(),
+				},
+			},
 		},
 	},
 };
@@ -27,6 +33,12 @@ const linking = {
 function extractJoinCodeFromUrl(url) {
 	if (!url || typeof url !== 'string') return null;
 	const match = url.match(/join-tournament\/([A-Za-z0-9]+)/i);
+	return match?.[1] ? match[1].toUpperCase() : null;
+}
+
+function extractTabletLoginCodeFromUrl(url) {
+	if (!url || typeof url !== 'string') return null;
+	const match = url.match(/tablet-login\/([A-Za-z0-9]+)/i);
 	return match?.[1] ? match[1].toUpperCase() : null;
 }
 
@@ -61,9 +73,27 @@ function useJoinTournamentDeepLink() {
 	}, []);
 }
 
+function useTabletLoginDeepLink() {
+	useEffect(() => {
+		const openTabletLogin = (url) => {
+			const code = extractTabletLoginCodeFromUrl(url);
+			if (!code) return;
+			setTimeout(() => navigate('TournamentCode', { code }), 300);
+		};
+
+		Linking.getInitialURL().then((url) => {
+			if (url) openTabletLogin(url);
+		});
+
+		const sub = Linking.addEventListener('url', ({ url }) => openTabletLogin(url));
+		return () => sub.remove();
+	}, []);
+}
+
 export default function AppShell() {
 	useAllowScreenSleepOutsideScoring();
 	useJoinTournamentDeepLink();
+	useTabletLoginDeepLink();
 
 	// Bez ręcznego paddingTop: na Androidzie (Expo 54 edge-to-edge)
 	// native stack już dokłada inset do headera — dodatkowy padding dawał

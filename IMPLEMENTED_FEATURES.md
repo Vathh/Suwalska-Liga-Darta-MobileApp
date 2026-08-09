@@ -25,7 +25,7 @@ Ostatnia aktualizacja: lipiec 2026 — MVP v1 otagowane. Zadania: [`../twentysix
 | Wymaganie | Status | Pliki |
 |-----------|--------|-------|
 | Wybór: Turniej / Quick game online / Trening | ✅ | `Home.jsx` |
-| Logowanie kodem turnieju | ✅ | `TournamentCode.jsx` |
+| Logowanie kodem / QR turnieju | ✅ | `TournamentCode.jsx`, `parseTabletLoginCode` |
 | Logowanie kontem (quick game online) | ✅ | `TournamentLogin.jsx` |
 | Trening bez konta | ✅ | `TrainingMatchSetup.jsx` → `GameScoringScreen` |
 

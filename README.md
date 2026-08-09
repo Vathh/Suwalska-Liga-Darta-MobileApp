@@ -1,6 +1,12 @@
 # twentySix — aplikacja mobilna
 
-Aplikacja mobilna **twentySix** (React Native / Expo): sędziowanie turniejów, quick game, znajomi. Współpracuje z API Laravel (`twentysix-backend`).
+Aplikacja mobilna **twentySix** (React Native / Expo): sędziowanie turniejów, quick game, znajomi. Współpracuje z API Laravel ([twentySix](https://github.com/Vathh/twentySix)).
+
+## Jak to działa?
+
+Przewodnik po całej aplikacji (web + mobile), w tym logowanie tabletu kodem/QR:
+
+→ [Przewodnik w repo backendu](https://github.com/Vathh/twentySix/blob/main/docs/przewodnik.md)
 
 ## Dokumentacja
 

@@ -143,7 +143,7 @@ const Home = ({ navigation }) => {
         ) : null}
         <Pressable style={styles.button} onPress={tournamentModeHandler}>
           <Text style={styles.buttonText}>Turniej</Text>
-          <Text style={styles.buttonHint}>Wymagany kod logowania</Text>
+          <Text style={styles.buttonHint}>Kod / QR od organizatora</Text>
         </Pressable>
         {auth?.accessToken ? (
           <Pressable
