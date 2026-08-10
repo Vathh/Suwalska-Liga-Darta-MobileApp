@@ -1,6 +1,10 @@
 import { runCricketTests } from '../../cricket/__tests__/cricketRules.test.js';
 import { runAchievementHandlersTests } from './achievementHandlers.test.js';
 import { runDartHistoryTrackerTests } from './dartHistoryTracker.test.js';
+import {
+	isRetryableScoringError,
+	ScoringRequestError,
+} from '../scoringRequestError.js';
 import { applyGameScoringState } from '../applyGameScoringState.js';
 import {
 	computeFfaStateRevision,
@@ -525,6 +529,25 @@ function testInferAdvancesAfterBust() {
 	assert(partial === 0, 'incomplete visit keeps current player');
 }
 
+function testScoringRequestErrorRetryable() {
+	assert(
+		isRetryableScoringError(
+			new ScoringRequestError('server', { status: 500, retryable: true }),
+		),
+		'5xx retryable',
+	);
+	assert(
+		!isRetryableScoringError(
+			new ScoringRequestError('validation', { status: 422, retryable: false }),
+		),
+		'422 not retryable',
+	);
+	assert(
+		isRetryableScoringError(new TypeError('Network request failed')),
+		'TypeError retryable',
+	);
+}
+
 const tests = [
 	['normalize tournament', testNormalizeTournament],
 	['tournament revision fast visits', testTournamentRevisionMonotonicOnFastVisits],
@@ -540,6 +563,7 @@ const tests = [
 	['per-dart bust rules', testPerDartBustRules],
 	['infer advances after bust', testInferAdvancesAfterBust],
 	['offline multi-set scoring', testMatchFormatOfflineScoring],
+	['scoring request error retryable', testScoringRequestErrorRetryable],
 	['cricket rules', runCricketTests],
 	['achievement handlers', runAchievementHandlersTests],
 	['dart history tracker', runDartHistoryTrackerTests],

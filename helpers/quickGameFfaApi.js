@@ -7,6 +7,7 @@ import {
 	getQuickGameFfaCricketUndoUrl,
 	QUICK_GAME_LOBBY_ACTIVE_MATCH_URL,
 } from './apiConfig';
+import { throwIfScoringResponseNotOk } from './gameScoring/scoringRequestError.js';
 
 export {
 	getQuickGameFfaStateUrl,
@@ -18,6 +19,15 @@ export {
 	QUICK_GAME_LOBBY_ACTIVE_MATCH_URL,
 };
 
+async function parseJson(res) {
+	const text = await res.text();
+	try {
+		return { data: JSON.parse(text), text };
+	} catch {
+		return { data: null, text };
+	}
+}
+
 export async function fetchFfaScoringState(lobbyId, accessToken) {
 	const url = getQuickGameFfaStateUrl(lobbyId);
 	const res = await fetch(url, {
@@ -26,10 +36,13 @@ export async function fetchFfaScoringState(lobbyId, accessToken) {
 			Accept: 'application/json',
 		},
 	});
-	const data = await res.json();
-	if (!res.ok) {
-		throw new Error(data?.message || 'Nie udało się pobrać stanu meczu');
-	}
+	const { data, text } = await parseJson(res);
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się pobrać stanu meczu',
+	);
 	return data;
 }
 
@@ -43,10 +56,13 @@ export async function recordFfaVisit(lobbyId, accessToken, payload) {
 		},
 		body: JSON.stringify(payload),
 	});
-	const data = await res.json();
-	if (!res.ok) {
-		throw new Error(data?.message || 'Nie udało się zapisać wizyty');
-	}
+	const { data, text } = await parseJson(res);
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się zapisać wizyty',
+	);
 	return data;
 }
 
@@ -58,10 +74,13 @@ export async function undoFfaVisit(lobbyId, accessToken) {
 			Authorization: `Bearer ${accessToken}`,
 		},
 	});
-	const data = await res.json();
-	if (!res.ok) {
-		throw new Error(data?.message || 'Nie udało się cofnąć wizyty');
-	}
+	const { data, text } = await parseJson(res);
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się cofnąć wizyty',
+	);
 	return data;
 }
 

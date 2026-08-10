@@ -5,6 +5,7 @@ import {
 	getGameScoringUndoUrl,
 	getGameScoringVisitUrl,
 } from './apiConfig';
+import { throwIfScoringResponseNotOk } from './gameScoring/scoringRequestError.js';
 
 const jsonHeaders = (accessToken) => ({
 	'Content-Type': 'application/json',
@@ -25,9 +26,12 @@ export async function fetchGameScoringState(baseUrl, accessToken) {
 		headers: jsonHeaders(accessToken),
 	});
 	const { data, text } = await parseJsonResponse(res);
-	if (!res.ok) {
-		throw new Error((data && data.message) || text || 'Nie udało się pobrać stanu meczu');
-	}
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się pobrać stanu meczu',
+	);
 	return data;
 }
 
@@ -43,9 +47,12 @@ export async function startGameLeg(
 		body: JSON.stringify({ player1DoubleTracked, player2DoubleTracked }),
 	});
 	const { data, text } = await parseJsonResponse(res);
-	if (!res.ok) {
-		throw new Error((data && data.message) || text || 'Nie udało się rozpocząć lega');
-	}
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się rozpocząć lega',
+	);
 	return data;
 }
 
@@ -56,9 +63,12 @@ export async function recordGameVisit(baseUrl, legId, accessToken, payload) {
 		body: JSON.stringify(payload),
 	});
 	const { data, text } = await parseJsonResponse(res);
-	if (!res.ok) {
-		throw new Error((data && data.message) || text || 'Nie udało się zapisać wizyty');
-	}
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się zapisać wizyty',
+	);
 	return data;
 }
 
@@ -68,9 +78,12 @@ export async function undoGameVisit(baseUrl, legId, accessToken) {
 		headers: jsonHeaders(accessToken),
 	});
 	const { data, text } = await parseJsonResponse(res);
-	if (!res.ok) {
-		throw new Error((data && data.message) || text || 'Nie udało się cofnąć wizyty');
-	}
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się cofnąć wizyty',
+	);
 	return data;
 }
 
@@ -81,8 +94,11 @@ export async function closeGameLeg(baseUrl, legId, accessToken, payload) {
 		body: JSON.stringify(payload),
 	});
 	const { data, text } = await parseJsonResponse(res);
-	if (!res.ok) {
-		throw new Error((data && data.message) || text || 'Nie udało się zamknąć lega');
-	}
+	throwIfScoringResponseNotOk(
+		res,
+		data,
+		text,
+		'Nie udało się zamknąć lega',
+	);
 	return data;
 }

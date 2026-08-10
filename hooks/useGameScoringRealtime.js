@@ -18,6 +18,7 @@ export function useGameScoringRealtime({
 	enabled,
 	onGameState,
 	onWsHealthChange,
+	onResubscribed = null,
 	channelType = 'public',
 	accessToken = null,
 	events = DEFAULT_GAME_EVENTS,
@@ -28,6 +29,8 @@ export function useGameScoringRealtime({
 	onGameStateRef.current = onGameState;
 	const onWsHealthChangeRef = useRef(onWsHealthChange);
 	onWsHealthChangeRef.current = onWsHealthChange;
+	const onResubscribedRef = useRef(onResubscribed);
+	onResubscribedRef.current = onResubscribed;
 
 	useEffect(() => {
 		if (!enabled || !channelName) {
@@ -64,6 +67,7 @@ export function useGameScoringRealtime({
 			channel.bind('pusher:subscription_succeeded', () => {
 				onWsHealthChangeRef.current?.(true);
 				logReverbWs('info', scope, `subskrypcja OK: ${channelName}`);
+				onResubscribedRef.current?.();
 			});
 			channel.bind('pusher:subscription_error', (status) => {
 				console.warn(`[WS/Reverb:${scope}] subscription_error`, status);

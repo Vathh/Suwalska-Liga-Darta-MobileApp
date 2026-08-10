@@ -111,12 +111,17 @@ const InvitationsScreen = ({ navigation, route }) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`join-${inv.id}`);
     try {
-      const { ok, data } = await joinQuickGameLobby(inv.lobbyId, auth.accessToken);
+      const { ok, status, data } = await joinQuickGameLobby(inv.lobbyId, auth.accessToken);
       if (ok && data?.id) {
         navigation.navigate('Graj', {
           screen: 'QuickGameLobby',
           params: { initialLobby: data },
         });
+      } else if (status === 409) {
+        Alert.alert(
+          'Nie można dołączyć',
+          data?.message || 'Masz już aktywne lobby lub mecz w toku.',
+        );
       } else {
         Alert.alert('Błąd', data?.message || 'Nie udało się dołączyć do lobby.');
       }

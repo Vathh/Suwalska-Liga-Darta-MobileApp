@@ -108,13 +108,16 @@ const QuickGameLobby = ({ navigation, route }) => {
     setError('');
     setLoading(true);
     try {
-      const { ok, data } = await createQuickGameLobby(auth?.accessToken);
+      const { ok, status, data } = await createQuickGameLobby(auth?.accessToken);
       if (ok && data?.id) {
         setLobby({ ...data, gameType: data.gameType ?? data.game_type ?? GAME_TYPES.X01 });
         setMatchFormat(normalizeMatchFormat(data.matchFormat ?? matchFormat));
         setGameType(data.gameType ?? data.game_type ?? GAME_TYPES.X01);
         setInvitations([]);
         fetchLobbyById(data.id);
+      } else if (status === 409 && data?.existingLobbyId) {
+        setError(data?.message || 'Masz już aktywne lobby.');
+        fetchLobbyById(data.existingLobbyId);
       } else {
         setError(data?.message || 'Nie udało się utworzyć lobby');
       }

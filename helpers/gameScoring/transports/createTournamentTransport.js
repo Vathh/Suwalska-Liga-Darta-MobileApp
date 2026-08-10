@@ -34,6 +34,10 @@ export function createTournamentTransport({
 			closeGameLeg(baseUrl, legId, accessToken, payload),
 		newClientVisitId,
 		requiresLegId: true,
+		getOutboxKey: () =>
+			channelKind && gameId
+				? `scoring-outbox:tournament:${channelKind}:${gameId}`
+				: null,
 		getRealtimeConfig: () => {
 			if (!channelKind || !gameId) {
 				return null;

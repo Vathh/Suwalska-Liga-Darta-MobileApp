@@ -40,6 +40,8 @@ export function createFfaTransport({
 		undoVisit: () => undoFfaVisit(lobbyId, accessToken),
 		newClientVisitId,
 		requiresLegId: false,
+		getOutboxKey: () =>
+			lobbyId != null ? `scoring-outbox:ffa:${lobbyId}` : null,
 		getRealtimeConfig: () => ({
 			channelName: `private-quick-game-lobby.${lobbyId}`,
 			channelType: 'private',

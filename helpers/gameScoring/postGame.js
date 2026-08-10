@@ -45,7 +45,7 @@ export async function sendTournamentAchievements({
 	matchFormat,
 }) {
 	if (!activeGame?.id || !achievements?.length || !accessToken) {
-		return;
+		return { ok: true, skipped: true };
 	}
 
 	const format = normalizeMatchFormat(matchFormat ?? { legsToWinSet: 2 });
@@ -68,7 +68,7 @@ export async function sendTournamentAchievements({
 		legs: [],
 	};
 
-	try {
+	const attempt = async () => {
 		const response = await fetch(UPDATE_GAME_API_URL, {
 			method: 'POST',
 			headers: {
@@ -78,10 +78,28 @@ export async function sendTournamentAchievements({
 			body: JSON.stringify(gameResultDTO),
 		});
 		if (!response.ok) {
-			console.error('Blad podczas aktualizacji meczu', response.statusText);
+			const text = await response.text();
+			const err = new Error(text || response.statusText || 'Błąd achievementów');
+			err.status = response.status;
+			err.retryable = response.status >= 500 || response.status === 429;
+			throw err;
 		}
+		return { ok: true };
+	};
+
+	try {
+		return await attempt();
 	} catch (error) {
 		console.error('Blad podczas wysylania wyniku turnieju', error);
+		if (error?.retryable || error instanceof TypeError) {
+			try {
+				return await attempt();
+			} catch (retryErr) {
+				console.error('Retry achievementów turniejowych nieudany', retryErr);
+				return { ok: false, error: retryErr };
+			}
+		}
+		return { ok: false, error };
 	}
 }
 
@@ -91,29 +109,46 @@ export async function sendQuickGameAchievements({
 	achievementsPayload,
 }) {
 	if (!gameId || !accessToken) {
-		return;
+		return { ok: true, skipped: true };
 	}
 
-	try {
+	const body = {
+		gameId,
+		achievements: achievementsPayload || [],
+	};
+
+	const attempt = async () => {
 		const response = await fetch(QUICK_GAME_UPDATE_API_URL, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 				Authorization: `Bearer ${accessToken}`,
 			},
-			body: JSON.stringify({
-				gameId,
-				achievements: achievementsPayload || [],
-			}),
+			body: JSON.stringify(body),
 		});
 		if (!response.ok) {
-			console.error(
-				'Blad podczas wysylania achievementow quick game',
-				await response.text(),
-			);
+			const text = await response.text();
+			const err = new Error(text || 'Błąd achievementów quick');
+			err.status = response.status;
+			err.retryable = response.status >= 500 || response.status === 429;
+			throw err;
 		}
+		return { ok: true };
+	};
+
+	try {
+		return await attempt();
 	} catch (error) {
 		console.error('Blad przy wysylaniu achievementow quick game', error);
+		if (error?.retryable || error instanceof TypeError) {
+			try {
+				return await attempt();
+			} catch (retryErr) {
+				console.error('Retry achievementów quick nieudany', retryErr);
+				return { ok: false, error: retryErr };
+			}
+		}
+		return { ok: false, error };
 	}
 }
 

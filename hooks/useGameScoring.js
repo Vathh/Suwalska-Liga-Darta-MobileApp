@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import {
 	applyGameScoringState,
 	computeStateRevision,
 	isNormalizedScoringState,
 	normalizeScoringState,
 } from '../helpers/gameScoring/index.js';
+import {
+	clearOutbox,
+	dequeueOutbox,
+	enqueueOutbox,
+	loadOutbox,
+} from '../helpers/gameScoring/scoringOutbox.js';
+import { isRetryableScoringError } from '../helpers/gameScoring/scoringRequestError.js';
 import {
 	CLOSED_LEG_UNDO_MESSAGE,
 	CLOSED_LEG_UNDO_TITLE,
@@ -15,6 +23,14 @@ import {
 import { useGameScoringRealtime } from './useGameScoringRealtime';
 
 const BACKUP_POLL_MS = 2500;
+
+function isMatchFinishedState(state) {
+	return (
+		state?.game?.status === 'finished' ||
+		state?.meta?.status === 'finished' ||
+		state?.session?.status === 'finished'
+	);
+}
 
 /**
  * Wspólny hook synchronizacji rozgrywki (turniej H2H, quick FFA, trening local).
@@ -49,8 +65,10 @@ export function useGameScoring({
 	const finishedQuickGameIdRef = useRef(null);
 	const lastSyncStateRef = useRef(null);
 	const wsHealthyRef = useRef(false);
+	const flushInFlightRef = useRef(false);
 	const [wsHealthy, setWsHealthy] = useState(false);
 	const [ffaPresence, setFfaPresence] = useState(null);
+	const [syncPending, setSyncPending] = useState(false);
 
 	/** Aktualne propsy scoringu — unikamy nowej referencji loadState co render (np. playerDispatches.slice). */
 	const scoringSyncRef = useRef({});
@@ -71,10 +89,24 @@ export function useGameScoring({
 		[transport],
 	);
 
+	const outboxKey = useMemo(
+		() => transport?.getOutboxKey?.() ?? null,
+		[transport],
+	);
+
 	const setWsHealth = useCallback((healthy) => {
 		wsHealthyRef.current = healthy;
 		setWsHealthy(healthy);
 	}, []);
+
+	const refreshSyncPending = useCallback(async () => {
+		if (!outboxKey) {
+			setSyncPending(false);
+			return;
+		}
+		const list = await loadOutbox(outboxKey);
+		setSyncPending(list.length > 0);
+	}, [outboxKey]);
 
 	const applyStateInternal = useCallback(
 		(state) => {
@@ -172,6 +204,111 @@ export function useGameScoring({
 	const onStateLoadedRef = useRef(onStateLoaded);
 	onStateLoadedRef.current = onStateLoaded;
 
+	const markMatchFinishedFromState = useCallback(
+		(state) => {
+			if (!isMatchFinishedState(state)) {
+				return false;
+			}
+			const applied = applyStateSafe(state, 'submit');
+			if (!applied) {
+				lastRevisionRef.current = Math.max(
+					lastRevisionRef.current,
+					computeStateRevision(state),
+				);
+				applyStateInternal(state);
+			}
+			setGameClosed(true);
+			return true;
+		},
+		[applyStateSafe, applyStateInternal, setGameClosed],
+	);
+
+	const flushOutbox = useCallback(async () => {
+		const syncTransport = scoringSyncRef.current.transport;
+		const key = syncTransport?.getOutboxKey?.() ?? null;
+		if (!key || !syncTransport || flushInFlightRef.current) {
+			return null;
+		}
+
+		flushInFlightRef.current = true;
+		pendingWritesRef.current += 1;
+		let lastState = null;
+		try {
+			if (syncTransport.fetchState) {
+				try {
+					const snapshot = await syncTransport.fetchState();
+					lastState = snapshot;
+					applyStateSafeRef.current(snapshot, 'external');
+					if (isMatchFinishedState(snapshot)) {
+						await clearOutbox(key);
+						setSyncPending(false);
+						markMatchFinishedFromState(snapshot);
+						return snapshot;
+					}
+				} catch {
+					// Brak sieci przy fetch — spróbuj flush wpisów i tak.
+				}
+			}
+
+			let remaining = await loadOutbox(key);
+			while (remaining.length > 0) {
+				const entry = remaining[0];
+				if (entry.op === 'recordVisit') {
+					lastState = await syncTransport.recordVisit(
+						entry.legId ?? null,
+						entry.payload,
+					);
+				} else if (entry.op === 'closeLeg' && syncTransport.closeLeg) {
+					lastState = await syncTransport.closeLeg(
+						entry.legId,
+						entry.payload,
+					);
+				} else if (entry.op === 'achievements') {
+					// Obsługiwane przez useGameFinishedEffects / postGame retry.
+					remaining = await dequeueOutbox(key);
+					continue;
+				} else {
+					remaining = await dequeueOutbox(key);
+					continue;
+				}
+
+				applyStateSafeRef.current(lastState, 'submit');
+				remaining = await dequeueOutbox(key);
+
+				if (isMatchFinishedState(lastState)) {
+					await clearOutbox(key);
+					setSyncPending(false);
+					markMatchFinishedFromState(lastState);
+					return lastState;
+				}
+
+				const legClosed =
+					lastState?.currentLeg == null ||
+					lastState?.currentLeg?.open === false;
+				if (legClosed && syncTransport.format === 'h2h') {
+					currentLegIdRef.current = null;
+				}
+			}
+
+			setSyncPending(false);
+			return lastState;
+		} catch (e) {
+			if (isRetryableScoringError(e)) {
+				setSyncPending(true);
+				return null;
+			}
+			console.warn('flushOutbox', e);
+			return null;
+		} finally {
+			pendingWritesRef.current -= 1;
+			flushInFlightRef.current = false;
+			await refreshSyncPending();
+		}
+	}, [markMatchFinishedFromState, refreshSyncPending]);
+
+	const flushOutboxRef = useRef(flushOutbox);
+	flushOutboxRef.current = flushOutbox;
+
 	const loadState = useCallback(async () => {
 		const { enabled: syncEnabled, transport: syncTransport } =
 			scoringSyncRef.current;
@@ -182,12 +319,20 @@ export function useGameScoring({
 			const state = await syncTransport.fetchState();
 			applyStateSafeRef.current(state, 'external');
 			onStateLoadedRef.current?.(state);
+			if (isMatchFinishedState(state)) {
+				const key = syncTransport.getOutboxKey?.() ?? null;
+				if (key) {
+					await clearOutbox(key);
+					setSyncPending(false);
+				}
+				markMatchFinishedFromState(state);
+			}
 			return state;
 		} catch (e) {
 			console.warn('loadGameScoringState', e);
 			return null;
 		}
-	}, []);
+	}, [markMatchFinishedFromState]);
 
 	const loadStateRef = useRef(loadState);
 	loadStateRef.current = loadState;
@@ -235,7 +380,10 @@ export function useGameScoring({
 		if (!enabled || gameClosed) {
 			return undefined;
 		}
-		void loadStateRef.current();
+		void (async () => {
+			await loadStateRef.current();
+			await flushOutboxRef.current();
+		})();
 		return undefined;
 	}, [enabled, gameClosed, reloadKey]);
 
@@ -247,6 +395,7 @@ export function useGameScoring({
 		const tick = async () => {
 			if (cancelled || wsHealthyRef.current) return;
 			await loadStateRef.current();
+			await flushOutboxRef.current();
 		};
 		void tick();
 		const t = setInterval(tick, BACKUP_POLL_MS);
@@ -256,6 +405,38 @@ export function useGameScoring({
 		};
 	}, [enabled, gameClosed, transport, wsHealthy]);
 
+	useEffect(() => {
+		if (!enabled || !outboxKey) {
+			return undefined;
+		}
+		void refreshSyncPending();
+
+		const unsubNet = NetInfo.addEventListener((state) => {
+			if (state.isConnected) {
+				void flushOutboxRef.current();
+			}
+		});
+
+		const onAppState = (next) => {
+			if (next === 'active') {
+				void flushOutboxRef.current();
+			}
+		};
+		const sub = AppState.addEventListener('change', onAppState);
+
+		return () => {
+			unsubNet();
+			sub.remove();
+		};
+	}, [enabled, outboxKey, refreshSyncPending]);
+
+	const onResubscribed = useCallback(() => {
+		void (async () => {
+			await loadStateRef.current();
+			await flushOutboxRef.current();
+		})();
+	}, []);
+
 	useGameScoringRealtime({
 		channelName: realtimeConfig?.channelName ?? null,
 		enabled: enabled && !gameClosed && !!realtimeConfig,
@@ -264,8 +445,18 @@ export function useGameScoring({
 		events: realtimeConfig?.events,
 		scope: realtimeConfig?.scope ?? 'game-scoring',
 		unwrapPayload: realtimeConfig?.unwrapPayload,
-		onGameState: (state) => applyStateSafeRef.current(state, 'external'),
+		onGameState: (state) => {
+			applyStateSafeRef.current(state, 'external');
+			if (isMatchFinishedState(state)) {
+				const key =
+					scoringSyncRef.current.transport?.getOutboxKey?.() ?? null;
+				if (key) {
+					void clearOutbox(key).then(() => setSyncPending(false));
+				}
+			}
+		},
 		onWsHealthChange: setWsHealth,
+		onResubscribed,
 	});
 
 	const buildCloseLegPlayers = useCallback(
@@ -273,8 +464,6 @@ export function useGameScoring({
 			const tracked = !!isPerDartMode;
 			return players.slice(0, N).map((p) => {
 				const isWinner = p.playerId === winnerPlayerId;
-				// Średnie / finish / lotki liczy backend z wizyt (po checkoutcie).
-				// Lokalny currentLegAverage jest często jeszcze sprzed ostatniej wizyty.
 				return {
 					playerId: p.playerId,
 					doubleTracked: tracked,
@@ -290,6 +479,23 @@ export function useGameScoring({
 			});
 		},
 		[players, N, isPerDartMode],
+	);
+
+	const enqueueRetryable = useCallback(
+		async (entry, userMessage) => {
+			const key = transport?.getOutboxKey?.() ?? null;
+			if (!key) {
+				Alert.alert('Błąd', userMessage);
+				return;
+			}
+			await enqueueOutbox(key, entry);
+			setSyncPending(true);
+			Alert.alert(
+				'Brak połączenia',
+				'Zapiszę na serwerze, gdy wróci internet.',
+			);
+		},
+		[transport],
 	);
 
 	const submitVisit = useCallback(
@@ -317,6 +523,10 @@ export function useGameScoring({
 				}
 
 				pendingWritesRef.current += 1;
+				const resolvedClientVisitId =
+					clientVisitId ?? transport.newClientVisitId();
+				let legId = null;
+				let payload = null;
 				try {
 					const liveStates = scoringSyncRef.current.playerStates;
 					const remainingBefore =
@@ -327,7 +537,7 @@ export function useGameScoring({
 						? remainingBefore
 						: Math.max(0, remainingBefore - visitScore);
 
-					const payload = {
+					payload = {
 						playerId: player.playerId,
 						score: bust ? 0 : visitScore,
 						remainingBefore,
@@ -335,11 +545,9 @@ export function useGameScoring({
 						dartsInVisit,
 						closedLeg,
 						bust,
-						clientVisitId:
-							clientVisitId ?? transport.newClientVisitId(),
+						clientVisitId: resolvedClientVisitId,
 					};
 
-					let legId = null;
 					if (transport.requiresLegId) {
 						legId = await ensureLegStarted();
 						if (!legId) {
@@ -350,8 +558,23 @@ export function useGameScoring({
 					const state = await transport.recordVisit(legId, payload);
 
 					applyStateSafe(state, 'submit');
+					if (isMatchFinishedState(state)) {
+						markMatchFinishedFromState(state);
+					}
 					return state;
 				} catch (e) {
+					if (isRetryableScoringError(e) && payload) {
+						await enqueueRetryable(
+							{
+								op: 'recordVisit',
+								legId,
+								payload,
+								clientVisitId: resolvedClientVisitId,
+							},
+							e.message || 'Nie udało się zapisać wizyty',
+						);
+						return null;
+					}
 					Alert.alert('Błąd', e.message || 'Nie udało się zapisać wizyty');
 					return null;
 				} finally {
@@ -363,9 +586,10 @@ export function useGameScoring({
 			enabled,
 			transport,
 			players,
-			playerStates,
 			ensureLegStarted,
 			applyStateSafe,
+			enqueueRetryable,
+			markMatchFinishedFromState,
 		],
 	);
 
@@ -382,13 +606,21 @@ export function useGameScoring({
 					}
 
 					pendingWritesRef.current += 1;
+					const resolvedClientVisitId =
+						visitOpts.clientVisitId ?? transport.newClientVisitId();
+					let legId = visitOpts.legId ?? null;
+					let visitPayload = null;
+					let closePayload = null;
 					try {
-						let legId = visitOpts.legId ?? null;
-
 						if (legId != null && transport.fetchState) {
 							const snapshot = await transport.fetchState();
+							if (isMatchFinishedState(snapshot)) {
+								markMatchFinishedFromState(snapshot);
+								return snapshot;
+							}
 							const openLegId = snapshot?.currentLeg?.id ?? null;
 							if (openLegId !== legId) {
+								applyStateSafe(snapshot, 'submit');
 								return snapshot;
 							}
 							currentLegIdRef.current = legId;
@@ -403,7 +635,7 @@ export function useGameScoring({
 							visitOpts.remainingBefore ??
 							playerStates[playerIndex]?.score ??
 							501;
-						await transport.recordVisit(legId, {
+						visitPayload = {
 							playerId: player.playerId,
 							score: visitScore,
 							remainingBefore,
@@ -411,21 +643,20 @@ export function useGameScoring({
 							dartsInVisit: checkoutDart,
 							closedLeg: true,
 							bust: false,
-							clientVisitId:
-								visitOpts.clientVisitId ??
-								transport.newClientVisitId(),
-						});
-						const state = await transport.closeLeg(legId, {
+							clientVisitId: resolvedClientVisitId,
+						};
+						closePayload = {
 							winnerId: player.playerId,
 							players: buildCloseLegPlayers(
 								player.playerId,
 								checkoutDart,
 							),
-						});
+						};
+
+						await transport.recordVisit(legId, visitPayload);
+						const state = await transport.closeLeg(legId, closePayload);
 						const applied = applyStateSafe(state, 'submit');
-						const matchFinished =
-							state?.game?.status === 'finished' ||
-							state?.meta?.status === 'finished';
+						const matchFinished = isMatchFinishedState(state);
 
 						if (matchFinished) {
 							if (!applied) {
@@ -454,6 +685,33 @@ export function useGameScoring({
 						}
 						return state;
 					} catch (e) {
+						if (isRetryableScoringError(e) && visitPayload && closePayload) {
+							const key = transport.getOutboxKey?.() ?? null;
+							if (key) {
+								await enqueueOutbox(key, {
+									op: 'recordVisit',
+									legId,
+									payload: visitPayload,
+									clientVisitId: resolvedClientVisitId,
+								});
+								await enqueueOutbox(key, {
+									op: 'closeLeg',
+									legId,
+									payload: closePayload,
+								});
+								setSyncPending(true);
+								Alert.alert(
+									'Brak połączenia',
+									'Zapiszę na serwerze, gdy wróci internet.',
+								);
+							} else {
+								Alert.alert(
+									'Błąd',
+									e.message || 'Nie udało się zamknąć lega',
+								);
+							}
+							return null;
+						}
 						Alert.alert(
 							'Błąd',
 							e.message || 'Nie udało się zamknąć lega',
@@ -486,6 +744,9 @@ export function useGameScoring({
 			applyStateSafe,
 			applyStateInternal,
 			setGameClosed,
+			enqueueRetryable,
+			markMatchFinishedFromState,
+			submitVisit,
 		],
 	);
 
@@ -552,5 +813,7 @@ export function useGameScoring({
 		getOpenLegId: () => currentLegIdRef.current,
 		finishedQuickGameIdRef,
 		ffaPresence,
+		syncPending,
+		flushOutbox,
 	};
 }

@@ -329,7 +329,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		reloadKey,
 	});
 
-	const { ffaPresence } = gameScoring;
+	const { ffaPresence, syncPending } = gameScoring;
 
 	const myPlayerId = useMemo(() => {
 		if (myPlayerIndex == null || myPlayerIndex < 0) return null;
@@ -1065,6 +1065,13 @@ const GameScoringScreen = ({ route, navigation }) => {
 				</Pressable>
 			</View>
 
+			{syncPending && (
+				<View style={styles.presenceBanner}>
+					<Text style={styles.presenceBannerText}>
+						Oczekuje na sieć — wynik zostanie wysłany automatycznie.
+					</Text>
+				</View>
+			)}
 			{presenceBannerMessages.length > 0 && (
 				<View style={styles.presenceBanner}>
 					{presenceBannerMessages.map((message) => (
