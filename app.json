@@ -25,7 +25,8 @@
         "backgroundColor": "#000000"
       },
       "package": "app.twentysix.mobile",
-      "versionCode": 14
+      "versionCode": 14,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"

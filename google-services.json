@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "450502809039",
+    "project_id": "twentysix-fb658",
+    "storage_bucket": "twentysix-fb658.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:450502809039:android:0d4f527388878c2a9f6eba",
+        "android_client_info": {
+          "package_name": "app.twentysix.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeWnGs3w-sxEzrQaosns_k9gdc1eNnVvI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

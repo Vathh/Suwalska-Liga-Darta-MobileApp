@@ -149,6 +149,14 @@ const FriendsScreen = ({ navigation }) => {
   const hasPendingInvite = (userId) =>
     sentInvitations.some((inv) => inv.receiver?.id === userId);
 
+  const openPlayerProfile = (playerId, name) => {
+    if (!playerId) return;
+    navigation.navigate('PlayerProfile', {
+      playerId,
+      name: name ?? undefined,
+    });
+  };
+
   if (!auth?.accessToken) {
     return (
       <View style={styles.container}>
@@ -180,13 +188,18 @@ const FriendsScreen = ({ navigation }) => {
             <View key={key} style={styles.row}>
               <Pressable
                 style={styles.rowNamePressable}
-                onPress={() => {
-                  if (!playerId) return;
-                  navigation.navigate('PlayerProfile', { playerId, name });
-                }}
+                onPress={() => openPlayerProfile(playerId, name)}
                 disabled={!playerId}
               >
-                <Text style={[styles.rowText, styles.rowNameText]}>{name}</Text>
+                <Text
+                  style={[
+                    styles.rowText,
+                    styles.rowNameText,
+                    playerId ? styles.rowNameLink : null,
+                  ]}
+                >
+                  {name}
+                </Text>
               </Pressable>
               <Pressable
                 style={[styles.removeButton, actionId && styles.buttonDisabled]}
@@ -205,13 +218,26 @@ const FriendsScreen = ({ navigation }) => {
       {sentInvitations.length > 0 ? (
         <>
           <Text style={styles.sectionTitle}>Oczekujące zaproszenia</Text>
-          {sentInvitations.map((inv) => (
-            <View key={inv.id} style={styles.pendingRow}>
-              <Text style={styles.rowText}>
-                {inv.receiver?.name ?? 'Gracz'} — wysłane, czeka na akceptację
-              </Text>
-            </View>
-          ))}
+          {sentInvitations.map((inv) => {
+            const receiverName = inv.receiver?.name ?? 'Gracz';
+            const receiverPlayerId = inv.receiver?.playerId ?? inv.receiver?.player_id;
+            return (
+              <View key={inv.id} style={styles.pendingRow}>
+                {receiverPlayerId ? (
+                  <Pressable onPress={() => openPlayerProfile(receiverPlayerId, receiverName)}>
+                    <Text style={styles.rowText}>
+                      <Text style={styles.rowNameLink}>{receiverName}</Text>
+                      {' — wysłane, czeka na akceptację'}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text style={styles.rowText}>
+                    {receiverName} — wysłane, czeka na akceptację
+                  </Text>
+                )}
+              </View>
+            );
+          })}
         </>
       ) : null}
 
@@ -243,6 +269,8 @@ const FriendsScreen = ({ navigation }) => {
       {searchResults.map((user) => {
         const busy = actionId === `invite-${user.id}`;
         const disabled = !!actionId || isAlreadyFriend(user.id) || hasPendingInvite(user.id);
+        const name = user.name ?? 'Gracz';
+        const playerId = user.playerId ?? user.player_id;
         let actionLabel = 'Zaproś';
         if (isAlreadyFriend(user.id)) actionLabel = 'Znajomy';
         else if (hasPendingInvite(user.id)) actionLabel = 'Wysłano';
@@ -250,7 +278,21 @@ const FriendsScreen = ({ navigation }) => {
 
         return (
           <View key={user.id} style={styles.row}>
-            <Text style={styles.rowText}>{user.name ?? 'Gracz'}</Text>
+            <Pressable
+              style={styles.rowNamePressable}
+              onPress={() => openPlayerProfile(playerId, name)}
+              disabled={!playerId}
+            >
+              <Text
+                style={[
+                  styles.rowText,
+                  styles.rowNameText,
+                  playerId ? styles.rowNameLink : null,
+                ]}
+              >
+                {name}
+              </Text>
+            </Pressable>
             <Pressable
               style={[styles.inviteButton, disabled && styles.buttonDisabled]}
               onPress={() => handleInvite(user.id)}
@@ -348,6 +390,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, fontSize: 16, color: colors.textMuted, fontWeight: '500', marginRight: 8 },
   rowNamePressable: { flex: 1, marginRight: 8 },
   rowNameText: { marginRight: 0 },
+  rowNameLink: { color: colors.accent, fontWeight: '600' },
   removeButton: {
     borderWidth: 1,
     borderColor: colors.danger,
