@@ -93,6 +93,7 @@ const QuickGameLobby = ({ navigation, route }) => {
     lobbyId: lobby?.id ?? null,
     accessToken: auth?.accessToken,
     onLeftLobby: clearLobbyLocal,
+    enabled: !!lobby?.id && (lobby?.status ?? 'waiting') === 'waiting',
   });
 
   const resolveMyPlayerIndex = useCallback((players, fromApi) => {
@@ -202,12 +203,17 @@ const QuickGameLobby = ({ navigation, route }) => {
   };
 
   const handleLeave = async () => {
-    if (!lobby?.id || !auth?.accessToken) return;
+    if (!lobby?.id || !auth?.accessToken) {
+      clearLobbyLocal();
+      return;
+    }
     try {
       await leaveQuickGameLobby(lobby.id, auth.accessToken);
-      clearLobbyLocal();
     } catch (e) {
       console.warn('leave', e);
+    } finally {
+      // Host leave usuwa lobby po stronie API; lokalnie zawsze wracamy do wyboru.
+      clearLobbyLocal();
     }
   };
 
@@ -284,10 +290,6 @@ const QuickGameLobby = ({ navigation, route }) => {
     } catch (e) {
       Alert.alert('Błąd', 'Błąd połączenia');
     }
-  };
-
-  const backToChoice = () => {
-    clearLobbyLocal();
   };
 
   if (lobby?.id) {
@@ -500,9 +502,11 @@ const QuickGameLobby = ({ navigation, route }) => {
             </Pressable>
           </>
         )}
-        <Pressable style={styles.buttonOutlined} onPress={backToChoice}>
-          <Text style={styles.buttonOutlinedText}>Wróć</Text>
-        </Pressable>
+        {!auth?.accessToken ? (
+          <Pressable style={styles.buttonOutlined} onPress={clearLobbyLocal}>
+            <Text style={styles.buttonOutlinedText}>Wróć</Text>
+          </Pressable>
+        ) : null}
         <ReverbDebugPanel />
       </>
     );

@@ -125,14 +125,20 @@ const TournamentDetailScreen = ({ navigation, route }) => {
 		breadcrumb.push({ label: 'Turniej' });
 	}
 
-	const resultsColumns = tournament?.tracksLeaguePoints
-		? [
-				RESULTS_COLUMNS_BASE[0],
-				RESULTS_COLUMNS_BASE[1],
-				{ key: 'points', label: 'Pkt', width: 48 },
-				RESULTS_COLUMNS_BASE[2],
-			]
-		: RESULTS_COLUMNS_BASE;
+	const showStageInResults = tournament?.showStageInResults !== false;
+	const resultsColumns = (() => {
+		const cols = [
+			RESULTS_COLUMNS_BASE[0],
+			RESULTS_COLUMNS_BASE[1],
+		];
+		if (tournament?.tracksLeaguePoints) {
+			cols.push({ key: 'points', label: 'Pkt', width: 48 });
+		}
+		if (showStageInResults) {
+			cols.push(RESULTS_COLUMNS_BASE[2]);
+		}
+		return cols;
+	})();
 
 	const resultsRows = (data?.results ?? []).map((row) => ({
 		...row,

@@ -3,7 +3,7 @@
     "name": "twentySix",
     "slug": "twentysix",
     "scheme": "twentysix",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -25,7 +25,7 @@
         "backgroundColor": "#000000"
       },
       "package": "app.twentysix.mobile",
-      "versionCode": 14,
+      "versionCode": 15,
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -47,7 +47,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#F59E0B",
+          "defaultChannel": "invitations"
+        }
+      ]
     ],
     "extra": {
       "eas": {

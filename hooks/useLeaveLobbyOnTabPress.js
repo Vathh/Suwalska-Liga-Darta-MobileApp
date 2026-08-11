@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { leaveQuickGameLobby } from '../helpers/quickGameLobbyApi';
 
@@ -13,17 +13,21 @@ function findTabNavigator(navigation) {
 }
 
 /**
- * Gdy użytkownik jest w aktywnym lobby quick game i klika dolny tab —
- * zapytaj o potwierdzenie wyjścia, wywołaj leave API, potem przejdź do tabu.
+ * Gdy użytkownik jest w aktywnym lobby quick game (waiting) i klika dolny tab
+ * albo wychodzi wstecz — zapytaj o potwierdzenie, wywołaj leave API.
  */
 export function useLeaveLobbyOnTabPress({
 	navigation,
 	lobbyId,
 	accessToken,
 	onLeftLobby,
+	/** false podczas startu meczu / po świadomym leave */
+	enabled = true,
 }) {
+	const skipNextRemoveRef = useRef(false);
+
 	useEffect(() => {
-		if (!lobbyId) return undefined;
+		if (!lobbyId || !enabled) return undefined;
 
 		const tabNav = findTabNavigator(navigation);
 		if (!tabNav?.addListener) return undefined;
@@ -52,6 +56,7 @@ export function useLeaveLobbyOnTabPress({
 							} catch (err) {
 								console.warn('leave lobby on tabPress', err);
 							}
+							skipNextRemoveRef.current = true;
 							onLeftLobby?.();
 							tabNav.navigate(targetName);
 						},
@@ -61,5 +66,44 @@ export function useLeaveLobbyOnTabPress({
 		});
 
 		return unsubscribe;
-	}, [navigation, lobbyId, accessToken, onLeftLobby]);
+	}, [navigation, lobbyId, accessToken, onLeftLobby, enabled]);
+
+	useEffect(() => {
+		if (!lobbyId || !enabled) return undefined;
+
+		const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+			if (skipNextRemoveRef.current) {
+				skipNextRemoveRef.current = false;
+				return;
+			}
+
+			e.preventDefault();
+
+			Alert.alert(
+				'Opuścić lobby?',
+				'Wyjście z ekranu opuści lobby. Czy na pewno chcesz wyjść?',
+				[
+					{ text: 'Anuluj', style: 'cancel' },
+					{
+						text: 'Opuść lobby',
+						style: 'destructive',
+						onPress: async () => {
+							try {
+								if (accessToken) {
+									await leaveQuickGameLobby(lobbyId, accessToken);
+								}
+							} catch (err) {
+								console.warn('leave lobby on beforeRemove', err);
+							}
+							skipNextRemoveRef.current = true;
+							onLeftLobby?.();
+							navigation.dispatch(e.data.action);
+						},
+					},
+				],
+			);
+		});
+
+		return unsubscribe;
+	}, [navigation, lobbyId, accessToken, onLeftLobby, enabled]);
 }
