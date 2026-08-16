@@ -25,6 +25,7 @@ import {
 	applyLegWinScores,
 	matchScoreForDisplay,
 	wouldCloseSet,
+	wouldWinMatch,
 } from '../../matchFormat/matchFormatScoring.js';
 import { isMatchWon } from '../../matchFormat/matchFormat.js';
 
@@ -490,6 +491,28 @@ function testMatchFormatOfflineScoring() {
 	state = applyLegWinScores(state, format);
 	state = applyLegWinScores(state, format);
 	assert(isMatchWon(state, format), 'match won after two sets');
+
+	assert(
+		!wouldWinMatch(
+			{ legsWon: 0, legsWonInSet: 0, setsWon: 0 },
+			{ legsToWinSet: 2, setsToWinMatch: 1 },
+		),
+		'first leg of BO3 is not match win',
+	);
+	assert(
+		wouldWinMatch(
+			{ legsWon: 1, legsWonInSet: 1, setsWon: 0 },
+			{ legsToWinSet: 2, setsToWinMatch: 1 },
+		),
+		'second leg of BO3 is match win',
+	);
+	assert(
+		wouldWinMatch(
+			{ legsWon: 0, legsWonInSet: 0, setsWon: 0 },
+			{ legsToWinSet: 1, setsToWinMatch: 1 },
+		),
+		'first checkout in first-to-1 is match win',
+	);
 }
 
 function testInferAdvancesAfterBust() {

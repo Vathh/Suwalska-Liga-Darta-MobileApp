@@ -1,4 +1,5 @@
 import { Alert } from 'react-native';
+import { playCheckoutWinSound, playVisitScore } from '../gameSounds';
 import { resetVisitDartLabels } from '../reducers/playerResultActions';
 
 /**
@@ -30,6 +31,7 @@ export function createOnlineVisitFlow(deps) {
 		handleQf,
 		getCheckoutPrompt,
 		openCheckoutDartModal,
+		getMatchFormat,
 		getGameScoring,
 		getCurrentResult,
 		beginScoringBusy,
@@ -93,6 +95,10 @@ export function createOnlineVisitFlow(deps) {
 									handleHf(resultToApply, player);
 								}
 								if (isPerDartMode()) {
+									playCheckoutWinSound(
+										getPlayerStatesRef().current[idx],
+										getMatchFormat(),
+									);
 									recordQfIfNeeded(player, idx, dartsInVisit);
 									await getGameScoring().closeLegWithWinner(
 										idx,
@@ -127,6 +133,9 @@ export function createOnlineVisitFlow(deps) {
 		let apiState = null;
 		const gameScoring = getGameScoring();
 		if (overshoot) {
+			if (!isPerDartMode()) {
+				playVisitScore(0);
+			}
 			apiState = await gameScoring.submitVisit({
 				playerIndex: idx,
 				visitScore: 0,
@@ -135,6 +144,9 @@ export function createOnlineVisitFlow(deps) {
 				...visitOpts,
 			});
 		} else {
+			if (!isPerDartMode()) {
+				playVisitScore(resultToApply);
+			}
 			apiState = await gameScoring.submitVisit({
 				playerIndex: idx,
 				visitScore: resultToApply,
@@ -192,6 +204,10 @@ export function createOnlineVisitFlow(deps) {
 								handleHf(resultToApply, player);
 							}
 							recordQfIfNeeded(player, idx, dartsInVisit);
+							playCheckoutWinSound(
+								getPlayerStatesRef().current[idx],
+								getMatchFormat(),
+							);
 							await getGameScoring().closeLegWithWinner(
 								idx,
 								resultToApply,

@@ -1,9 +1,20 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ScrollView, Switch } from 'react-native';
 import { SCORING_MODES } from '../../hooks/useGameSettings';
+import { playClick } from '../../helpers/gameSounds';
 import { colors } from '../../theme/colors';
 
-const Settings = ({ scoringMode, setScoringMode, loaded = true }) => {
+const VOLUME_STEPS = [0.2, 0.4, 0.6, 0.8, 1];
+
+const Settings = ({
+  scoringMode,
+  setScoringMode,
+  soundsEnabled = true,
+  setSoundsEnabled,
+  soundVolume = 1,
+  setSoundVolume,
+  loaded = true,
+}) => {
   if (!loaded) {
     return (
       <View style={styles.container}>
@@ -11,6 +22,14 @@ const Settings = ({ scoringMode, setScoringMode, loaded = true }) => {
       </View>
     );
   }
+
+  const handleVolumeStep = (step) => {
+    if (!soundsEnabled) {
+      setSoundsEnabled?.(true);
+    }
+    setSoundVolume?.(step);
+    playClick();
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.containerContent}>
@@ -42,6 +61,41 @@ const Settings = ({ scoringMode, setScoringMode, loaded = true }) => {
             </Text>
             <Text style={styles.optionDesc}>Klikaj wartość każdej lotki (1–20, bull, D, T)</Text>
           </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.label}>Dźwięki gry</Text>
+        <Text style={styles.hint}>Zapowiedzi rzutów i końca lega. Zostaje na kolejne mecze.</Text>
+        <View style={styles.soundRow}>
+          <Text style={styles.soundRowLabel}>
+            {soundsEnabled ? 'Włączone' : 'Wyłączone'}
+          </Text>
+          <Switch
+            value={soundsEnabled}
+            onValueChange={(value) => setSoundsEnabled?.(value)}
+            trackColor={{ false: colors.textVeryDim, true: colors.accent }}
+            thumbColor={colors.text}
+          />
+        </View>
+        <Text style={[styles.volumeLabel, !soundsEnabled && styles.volumeLabelDisabled]}>
+          Głośność · {Math.round(soundVolume * 100)}%
+        </Text>
+        <View style={styles.volumeRow}>
+          {VOLUME_STEPS.map((step) => {
+            const filled = soundVolume + 0.001 >= step;
+            return (
+              <Pressable
+                key={step}
+                style={[
+                  styles.volumeStep,
+                  filled && styles.volumeStepFilled,
+                  !soundsEnabled && styles.volumeStepDisabled,
+                ]}
+                onPress={() => handleVolumeStep(step)}
+              />
+            );
+          })}
         </View>
       </View>
     </ScrollView>
@@ -100,7 +154,49 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 4,
   },
+  soundRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.scrimSoft,
+    marginBottom: 16,
+  },
+  soundRowLabel: {
+    color: colors.textMuted,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  volumeLabel: {
+    color: colors.textDim,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  volumeLabelDisabled: {
+    opacity: 0.5,
+  },
+  volumeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    height: 44,
+  },
+  volumeStep: {
+    flex: 1,
+    height: '100%',
+    borderRadius: 6,
+    backgroundColor: colors.border,
+  },
+  volumeStepFilled: {
+    backgroundColor: colors.accent,
+  },
+  volumeStepDisabled: {
+    opacity: 0.35,
+  },
 });
 
 export default Settings;
-

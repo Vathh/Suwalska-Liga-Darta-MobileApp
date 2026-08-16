@@ -1,4 +1,5 @@
 import {
+	isMatchWon,
 	isSingleSetFormat,
 	normalizeMatchFormat,
 } from './matchFormat.js';
@@ -73,4 +74,9 @@ export function applyLegWinScores(playerState, format) {
 		legsWonInSet,
 		setsWon,
 	};
+}
+
+/** Czy ten checkout zamknie cały mecz (przed LEG_WIN). */
+export function wouldWinMatch(playerState, format) {
+	return isMatchWon(applyLegWinScores(playerState, format), format);
 }

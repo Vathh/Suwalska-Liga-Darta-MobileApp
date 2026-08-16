@@ -56,6 +56,7 @@ import { createAchievementHandlers } from '../../helpers/gameScoring/achievement
 import { createDartHistoryTracker } from '../../helpers/gameScoring/dartHistoryTracker';
 import { computeNextLegOpener } from '../../helpers/computeNextLegOpener';
 import { evaluatePerDartVisitAfterDart } from '../../helpers/perDartVisitRules';
+import { playCheckoutWinSound, playClick, playGameOn, playVisitScore } from '../../helpers/gameSounds';
 import { buildFfaPresenceBannerMessages } from '../../helpers/ffaPresenceMessages';
 import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
 import { isCricketGameType } from '../../helpers/cricket';
@@ -68,6 +69,10 @@ const GameScoringScreen = ({ route, navigation }) => {
 	const {
 		scoringMode,
 		setScoringMode,
+		soundsEnabled,
+		setSoundsEnabled,
+		soundVolume,
+		setSoundVolume,
 		loaded: gameSettingsLoaded,
 		isPerDartMode,
 	} = useGameSettings();
@@ -135,6 +140,8 @@ const GameScoringScreen = ({ route, navigation }) => {
 	const [openerCheckPending, setOpenerCheckPending] =
 		useState(isTournamentOnline);
 	const matchOpenerChosenRef = useRef(!showStartModal && !isTournamentOnline);
+	const gameOnPlayedRef = useRef(false);
+	const [audioStartReady, setAudioStartReady] = useState(!syncEnabled);
 	const [isQFModalVisible, setIsQFModalVisible] = useState(false);
 	/** Zamrożony kontekst modala checkout — nie zależy od currentPlayerIndex po zamknięciu lega. */
 	const [checkoutModalPlayer, setCheckoutModalPlayer] = useState(null);
@@ -287,17 +294,24 @@ const GameScoringScreen = ({ route, navigation }) => {
 			if (formatFromState) {
 				setSyncedMatchFormat(normalizeMatchFormat(formatFromState));
 			}
-			if (!isTournamentOnline || matchOpenerChosenRef.current) {
-				return;
-			}
-			const resumed =
+			const hasProgress =
+				(state?.visits?.length ?? 0) > 0 ||
+				(state?.legs?.length ?? 0) > 0 ||
 				(state?.game?.player1LegsWon ?? 0) +
 					(state?.game?.player2LegsWon ?? 0) >
 					0 ||
-				(state?.legs?.length ?? 0) > 0 ||
-				(state?.visits?.length ?? 0) > 0;
-			matchOpenerChosenRef.current = resumed;
-			setIsModalVisible(!resumed);
+				(state?.players ?? []).some((p) => (p.legsWon ?? 0) > 0) ||
+				(state?.currentLeg?.legNumber ?? 1) > 1 ||
+				(state?.session?.currentLegNumber ?? 1) > 1;
+			if (hasProgress) {
+				gameOnPlayedRef.current = true;
+			}
+			setAudioStartReady(true);
+			if (!isTournamentOnline || matchOpenerChosenRef.current) {
+				return;
+			}
+			matchOpenerChosenRef.current = hasProgress;
+			setIsModalVisible(!hasProgress);
 			setOpenerCheckPending(false);
 		},
 		[isTournamentOnline],
@@ -415,6 +429,23 @@ const GameScoringScreen = ({ route, navigation }) => {
 			void deactivateKeepAwake(KEEP_AWAKE_TAG);
 		};
 	}, [isFocused, gameClosed]);
+
+	useEffect(() => {
+		if (gameOnPlayedRef.current || gameClosed || !audioStartReady) {
+			return;
+		}
+		if (isModalVisible || openerCheckPending || !isFocused) {
+			return;
+		}
+		gameOnPlayedRef.current = true;
+		playGameOn();
+	}, [
+		audioStartReady,
+		isModalVisible,
+		openerCheckPending,
+		isFocused,
+		gameClosed,
+	]);
 
 	const { finishedModalProps, showFinished } = useGameFinishedModal({
 		navigation,
@@ -600,6 +631,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		handleQf,
 		getCheckoutPrompt,
 		openCheckoutDartModal,
+		getMatchFormat: () => matchFormat,
 		getGameScoring: () => gameScoring,
 		getCurrentResult: () => currentResult,
 		beginScoringBusy,
@@ -647,6 +679,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		);
 
 		if (bust) {
+			playVisitScore(0);
 			if (syncEnabled) {
 				beginScoringBusy();
 				try {
@@ -699,9 +732,11 @@ const GameScoringScreen = ({ route, navigation }) => {
 		}
 
 		if (!isLastDart) {
+			playClick();
 			return 'continue';
 		}
 
+		playVisitScore(visitTotal);
 		visitPointsTotalRef.current = 0;
 
 		if (syncEnabled) {
@@ -888,6 +923,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 				handleQf(player, dartsThrownBefore + dartNumber);
 			}
 			try {
+				playCheckoutWinSound(playerStates[idx], matchFormat);
 				await gameScoring.closeLegWithWinner(
 					idx,
 					visitScore,
@@ -999,6 +1035,10 @@ const GameScoringScreen = ({ route, navigation }) => {
 				<Settings
 					scoringMode={scoringMode}
 					setScoringMode={setScoringMode}
+					soundsEnabled={soundsEnabled}
+					setSoundsEnabled={setSoundsEnabled}
+					soundVolume={soundVolume}
+					setSoundVolume={setSoundVolume}
 					loaded={gameSettingsLoaded}
 				/>
 			);

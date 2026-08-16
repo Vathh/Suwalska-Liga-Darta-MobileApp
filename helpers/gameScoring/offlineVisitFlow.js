@@ -7,6 +7,7 @@ import {
 	resetVisitDartLabels,
 	updateStats,
 } from '../reducers/playerResultActions';
+import { playCheckoutWinSound, playVisitScore } from '../gameSounds';
 import { wouldCloseSet } from '../matchFormat/matchFormatScoring';
 
 /**
@@ -69,6 +70,7 @@ export function createOfflineVisitFlow(deps) {
 		const playerStates = getPlayerStates();
 		const playerDispatches = getPlayerDispatches();
 		const matchFormat = getMatchFormat();
+		playCheckoutWinSound(playerStates[idx], matchFormat);
 		const player = players[idx];
 		const startingScore = getStartingScore();
 
@@ -192,6 +194,7 @@ export function createOfflineVisitFlow(deps) {
 		handleMaxAndOneSeventy(player);
 
 		if (resultToApply < state.score - 1) {
+			playVisitScore(resultToApply);
 			pushVisitLog(idx, resultToApply);
 			dispatch(updateStats(resultToApply));
 			const nextIdx = (idx + 1) % N;
@@ -226,6 +229,7 @@ export function createOfflineVisitFlow(deps) {
 			setResultEdited(false);
 			return;
 		}
+		playVisitScore(0);
 		setCurrentResult(0);
 		setResultEdited(false);
 		okHandlingRef.current = false;
