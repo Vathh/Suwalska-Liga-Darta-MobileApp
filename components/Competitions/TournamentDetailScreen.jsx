@@ -14,6 +14,7 @@ import { getTournamentUrl } from '../../helpers/apiConfig';
 import DetailHeader from './DetailHeader';
 import CompetitionTabs from './CompetitionTabs';
 import CompetitionTable from './CompetitionTable';
+import PlayoffBracket from './PlayoffBracket';
 import { colors } from '../../theme/colors';
 
 const TAB_LABELS = {
@@ -242,24 +243,10 @@ const TournamentDetailScreen = ({ navigation, route }) => {
 							) : null}
 
 							{activeTab === 'playoff' ? (
-								(data?.playoff ?? []).length === 0 ? (
-									<Text style={styles.empty}>Brak drabinki playoff.</Text>
-								) : (
-									(data?.playoff ?? []).map((round) => (
-										<View key={round.round} style={styles.groupBlock}>
-											<Text style={styles.sectionTitle}>{round.roundLabel}</Text>
-											{(round.games ?? []).map((game) => (
-												<View key={game.id} style={styles.gameRow}>
-													<Text style={styles.gameNames} numberOfLines={1}>
-														{game.player1?.name ?? 'TBD'} —{' '}
-														{game.player2?.name ?? 'TBD'}
-													</Text>
-													<Text style={styles.gameScore}>{formatScore(game)}</Text>
-												</View>
-											))}
-										</View>
-									))
-								)
+								<PlayoffBracket
+									rounds={data?.playoff ?? []}
+									onPlayerPress={openPlayer}
+								/>
 							) : null}
 
 							{activeTab === 'achievements' ? (

@@ -20,6 +20,7 @@ export const gameScoringScreenStyles = StyleSheet.create({
 	},
 	navigationContainer: {
 		flexDirection: 'row',
+		paddingBottom: 5,
 	},
 	navigationBtn: {
 		flex: 1,
