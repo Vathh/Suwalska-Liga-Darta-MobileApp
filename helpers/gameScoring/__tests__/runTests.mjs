@@ -1,4 +1,5 @@
 import { runCricketTests } from '../../cricket/__tests__/cricketRules.test.js';
+import { runBob27Tests } from '../../bob27/__tests__/bob27Rules.test.js';
 import { runAchievementHandlersTests } from './achievementHandlers.test.js';
 import { runDartHistoryTrackerTests } from './dartHistoryTracker.test.js';
 import {
@@ -588,6 +589,7 @@ const tests = [
 	['offline multi-set scoring', testMatchFormatOfflineScoring],
 	['scoring request error retryable', testScoringRequestErrorRetryable],
 	['cricket rules', runCricketTests],
+	['bob27 rules', runBob27Tests],
 	['achievement handlers', runAchievementHandlersTests],
 	['dart history tracker', runDartHistoryTrackerTests],
 ];

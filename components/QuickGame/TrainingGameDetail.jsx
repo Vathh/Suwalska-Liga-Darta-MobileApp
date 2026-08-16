@@ -25,14 +25,17 @@ const StatRow = ({ label, value }) => (
 	</View>
 );
 
-const PlayerBlock = ({ player, isCricket }) => (
+const PlayerBlock = ({ player, hideX01Stats }) => (
 	<View style={styles.playerBlock}>
 		<Text style={styles.playerName}>{player.name}</Text>
 		<StatRow label="Wygrane legi" value={player.legsWon} />
-		{!isCricket && (player.setsWon ?? 0) > 0 ? (
+		{!hideX01Stats && (player.setsWon ?? 0) > 0 ? (
 			<StatRow label="Sety" value={player.setsWon} />
 		) : null}
-		{!isCricket ? (
+		{player.score != null ? (
+			<StatRow label="Wynik Bob's 27" value={player.score} />
+		) : null}
+		{!hideX01Stats ? (
 			<>
 				<StatRow
 					label="Średnia (3 lotki)"
@@ -165,6 +168,8 @@ const TrainingGameDetail = ({ route }) => {
 	}
 
 	const isCricket = game.gameType === 'cricket';
+	const isBob27 = game.gameType === 'bob27';
+	const hideX01Stats = isCricket || isBob27;
 
 	return (
 		<ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
@@ -177,13 +182,15 @@ const TrainingGameDetail = ({ route }) => {
 				<Text style={styles.format}>{formatMatchLabel(game.matchFormat)}</Text>
 			) : isCricket ? (
 				<Text style={styles.format}>Cricket</Text>
+			) : isBob27 ? (
+				<Text style={styles.format}>Bob's 27</Text>
 			) : null}
 
 			{(game.players ?? []).map((p) => (
-				<PlayerBlock key={p.name} player={p} isCricket={isCricket} />
+				<PlayerBlock key={p.name} player={p} hideX01Stats={hideX01Stats} />
 			))}
 
-			{!isCricket ? <LegsBrowser legs={game.legs} /> : null}
+			{!hideX01Stats ? <LegsBrowser legs={game.legs} /> : null}
 		</ScrollView>
 	);
 };

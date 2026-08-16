@@ -136,10 +136,13 @@ export function buildTrainingGameRecord({
 	matchFormat,
 	gameType = 'x01',
 	cricketStates = null,
+	bob27States = null,
 }) {
 	const playedAt = new Date().toISOString();
 	const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 	const isCricket = gameType === 'cricket';
+	const isBob27 = gameType === 'bob27';
+	const hideX01Stats = isCricket || isBob27;
 
 	const playerRecords = (players ?? []).map((p, i) => {
 		const name = (p?.name ?? `Gracz ${i + 1}`).trim() || `Gracz ${i + 1}`;
@@ -163,6 +166,27 @@ export function buildTrainingGameRecord({
 				max180: 0,
 			};
 		}
+		if (isBob27) {
+			const legsWon = bob27States?.[i]?.legsWon ?? 0;
+			return {
+				name,
+				legsWon,
+				setsWon: 0,
+				score: bob27States?.[i]?.score ?? null,
+				matchAverage: null,
+				bestLegAverage: null,
+				bestLegDarts: null,
+				totalPointsEarned: 0,
+				totalDartsThrown: 0,
+				checkoutDarts: [],
+				checkoutDartCounts: { 1: 0, 2: 0, 3: 0 },
+				plus60: 0,
+				plus80: 0,
+				plus100: 0,
+				plus140: 0,
+				max180: 0,
+			};
+		}
 		return {
 			name,
 			...computeX01PlayerMatchStats(playerStates?.[i]),
@@ -170,7 +194,7 @@ export function buildTrainingGameRecord({
 	});
 
 	let winnerName = null;
-	if (isCricket) {
+	if (isCricket || isBob27) {
 		let maxLegs = -1;
 		for (const pr of playerRecords) {
 			if ((pr.legsWon ?? 0) > maxLegs) {
@@ -186,14 +210,14 @@ export function buildTrainingGameRecord({
 				: playerRecords.find((p) => (p.legsWon ?? 0) > 0)?.name ?? null;
 	}
 
-	const legs = isCricket
+	const legs = hideX01Stats
 		? []
 		: buildX01LegsBreakdown(players, playerStates, matchFormat);
 
 	return {
 		id,
 		playedAt,
-		gameType: isCricket ? 'cricket' : 'x01',
+		gameType: isCricket ? 'cricket' : isBob27 ? 'bob27' : 'x01',
 		matchFormat: matchFormat ?? null,
 		winnerName,
 		players: playerRecords,

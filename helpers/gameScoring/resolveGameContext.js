@@ -6,6 +6,7 @@ import {
 import { normalizeTournamentPlayers } from '../normalizeTournamentPlayers';
 import { createFfaTransport } from './transports/createFfaTransport.js';
 import { createFfaCricketTransport } from './transports/createFfaCricketTransport.js';
+import { createFfaBob27Transport } from './transports/createFfaBob27Transport.js';
 import { createTournamentTransport } from './transports/createTournamentTransport.js';
 
 export const GAME_MODE = {
@@ -77,9 +78,6 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 				)
 			: [];
 
-	const N = Math.min(Math.max(players.length, 2), 8);
-	const myPlayerIndex = resolveMyPlayerIndex(matchConfig, auth, players);
-
 	const resolvedGameType = String(
 		matchFormat?.gameType
 			?? quickGame?.gameType
@@ -87,16 +85,22 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 			?? 'x01',
 	).toLowerCase();
 	const isCricket = resolvedGameType === 'cricket';
+	const isBob27 = resolvedGameType === 'bob27';
+	const minPlayers = isBob27 ? 1 : 2;
+	const N = Math.min(Math.max(players.length, minPlayers), 8);
+	const myPlayerIndex = resolveMyPlayerIndex(matchConfig, auth, players);
 
 	const hasOnlineQuick =
 		isQuick &&
 		!!lobbyId &&
 		!isCricket &&
+		!isBob27 &&
 		(quickGame?.gameType === '501'
 			|| quickGame?.gameType === 'x01'
 			|| quickGame?.gameType === undefined
 			|| resolvedGameType === 'x01');
 	const hasOnlineCricket = isQuick && !!lobbyId && isCricket;
+	const hasOnlineBob27 = isQuick && !!lobbyId && isBob27;
 	const accessToken = auth?.accessToken ?? null;
 
 	let transport = null;
@@ -118,6 +122,16 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 		reloadKey = tournamentGame.id;
 	} else if (hasOnlineCricket && accessToken) {
 		transport = createFfaCricketTransport({
+			lobbyId,
+			accessToken,
+			lobbyScoringMode,
+			isHost,
+			myPlayerIndexFromLobby: myPlayerIndex,
+			getCurrentPlayerIndex,
+		});
+		reloadKey = lobbyId;
+	} else if (hasOnlineBob27 && accessToken) {
+		transport = createFfaBob27Transport({
 			lobbyId,
 			accessToken,
 			lobbyScoringMode,

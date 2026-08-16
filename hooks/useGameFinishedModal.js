@@ -55,7 +55,7 @@ export function useGameFinishedModal({
 		[navigation],
 	);
 
-	const showFinished = useCallback(({ winnerName, kind, tournamentEnded = false }) => {
+	const showFinished = useCallback(({ winnerName, kind, tournamentEnded = false, lost = false }) => {
 		navigatedRef.current = false;
 		waitingRef.current = false;
 		setErrorMessage(null);
@@ -66,12 +66,18 @@ export function useGameFinishedModal({
 			setVariant('training');
 			setTitle('Trening zakończony');
 			setMessage(
-				`${winnerName ?? 'Zwycięzca'} wygrywa mecz.\nWynik zapisano w historii treningów.`,
+				lost
+					? 'Wynik spadł do 0 lub poniżej. Gra zakończona.\nWynik zapisano w historii treningów.'
+					: `${winnerName ?? 'Zwycięzca'} wygrywa mecz.\nWynik zapisano w historii treningów.`,
 			);
 		} else if (kind === 'quick') {
 			setVariant('quick');
 			setTitle('Mecz zakończony');
-			setMessage(`${winnerName ?? 'Zwycięzca'} wygrywa mecz.`);
+			setMessage(
+				lost
+					? 'Wynik spadł do 0 lub poniżej. Gra zakończona.'
+					: `${winnerName ?? 'Zwycięzca'} wygrywa mecz.`,
+			);
 		} else {
 			setVariant('tournament');
 			setTitle('Mecz zakończony');

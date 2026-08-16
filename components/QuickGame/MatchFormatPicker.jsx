@@ -2,10 +2,14 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
 	DEFAULT_MATCH_FORMAT,
+	GAME_TYPE_BOB27,
 	GAME_TYPE_CRICKET,
 	GAME_TYPE_X01,
+	BOB27_MODE_EASY,
+	BOB27_MODE_HARD,
 	STARTING_SCORE_OPTIONS,
 	formatMatchLabel,
+	isBob27Format,
 	isCricketFormat,
 	normalizeMatchFormat,
 } from '../../helpers/matchFormat/matchFormat';
@@ -54,6 +58,8 @@ export default function MatchFormatPicker({
 }) {
 	const format = normalizeMatchFormat(value);
 	const cricket = isCricketFormat(format);
+	const bob27 = isBob27Format(format);
+	const hideX01Fields = cricket || bob27;
 
 	const setField = (patch) => onChange(normalizeMatchFormat({ ...format, ...patch }));
 
@@ -67,13 +73,13 @@ export default function MatchFormatPicker({
 					<Pressable
 						style={[
 							styles.typeBtn,
-							!cricket && styles.typeBtnActive,
+							!cricket && !bob27 && styles.typeBtnActive,
 							disabled && styles.countBtnDisabled,
 						]}
 						disabled={disabled}
 						onPress={() => setField({ gameType: GAME_TYPE_X01 })}
 					>
-						<Text style={[styles.typeBtnText, !cricket && styles.typeBtnTextActive]}>
+						<Text style={[styles.typeBtnText, !cricket && !bob27 && styles.typeBtnTextActive]}>
 							501 / X01
 						</Text>
 					</Pressable>
@@ -95,10 +101,76 @@ export default function MatchFormatPicker({
 							Cricket
 						</Text>
 					</Pressable>
+					<Pressable
+						style={[
+							styles.typeBtn,
+							bob27 && styles.typeBtnActive,
+							disabled && styles.countBtnDisabled,
+						]}
+						disabled={disabled}
+						onPress={() =>
+							setField({
+								gameType: GAME_TYPE_BOB27,
+								setsToWinMatch: 1,
+							})
+						}
+					>
+						<Text style={[styles.typeBtnText, bob27 && styles.typeBtnTextActive]}>
+							Bob's 27
+						</Text>
+					</Pressable>
 				</View>
 			)}
 
-			{!cricket && (
+			{bob27 && (
+				<View style={styles.typeRow}>
+					<Pressable
+						style={[
+							styles.typeBtn,
+							format.bob27Mode === BOB27_MODE_HARD && styles.typeBtnActive,
+							disabled && styles.countBtnDisabled,
+						]}
+						disabled={disabled}
+						onPress={() => setField({ bob27Mode: BOB27_MODE_HARD })}
+					>
+						<Text
+							style={[
+								styles.typeBtnText,
+								format.bob27Mode === BOB27_MODE_HARD && styles.typeBtnTextActive,
+							]}
+						>
+							Hard
+						</Text>
+					</Pressable>
+					<Pressable
+						style={[
+							styles.typeBtn,
+							format.bob27Mode === BOB27_MODE_EASY && styles.typeBtnActive,
+							disabled && styles.countBtnDisabled,
+						]}
+						disabled={disabled}
+						onPress={() => setField({ bob27Mode: BOB27_MODE_EASY })}
+					>
+						<Text
+							style={[
+								styles.typeBtnText,
+								format.bob27Mode === BOB27_MODE_EASY && styles.typeBtnTextActive,
+							]}
+						>
+							Easy
+						</Text>
+					</Pressable>
+				</View>
+			)}
+			{bob27 ? (
+				<Text style={styles.modeHint}>
+					{format.bob27Mode === BOB27_MODE_EASY
+						? 'Easy: gra trwa przy ujemnym wyniku.'
+						: 'Hard: wynik ≤ 0 kończy grę (wypadasz).'}
+				</Text>
+			) : null}
+
+			{!hideX01Fields && (
 				<Stepper
 					label="Punkty startowe"
 					value={format.startingScore}
@@ -125,7 +197,7 @@ export default function MatchFormatPicker({
 			)}
 
 			<Stepper
-				label={cricket ? 'Legi do wygrania meczu' : 'Legi do wygrania seta'}
+				label={hideX01Fields ? 'Legi do wygrania meczu' : 'Legi do wygrania seta'}
 				value={format.legsToWinSet}
 				disabled={disabled}
 				onDecrement={() =>
@@ -140,7 +212,7 @@ export default function MatchFormatPicker({
 				}
 			/>
 
-			{!cricket && (
+			{!hideX01Fields && (
 				<Stepper
 					label="Sety do wygrania meczu"
 					value={format.setsToWinMatch}
@@ -189,12 +261,14 @@ const styles = StyleSheet.create({
 	},
 	typeRow: {
 		flexDirection: 'row',
+		flexWrap: 'wrap',
 		gap: 10,
 		marginBottom: 12,
 		justifyContent: 'center',
 	},
 	typeBtn: {
 		flex: 1,
+		minWidth: 90,
 		paddingVertical: 10,
 		borderRadius: 8,
 		borderWidth: 1.5,
@@ -213,6 +287,12 @@ const styles = StyleSheet.create({
 	},
 	typeBtnTextActive: {
 		color: colors.accent,
+	},
+	modeHint: {
+		fontSize: 13,
+		color: colors.textMuted,
+		textAlign: 'center',
+		marginBottom: 8,
 	},
 	stepperBlock: {
 		marginTop: 8,

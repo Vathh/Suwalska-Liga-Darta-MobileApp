@@ -8,7 +8,7 @@ import {
 } from '../helpers/matchFormat/persistMatchFormat';
 import { logReverbWs } from '../helpers/reverbWsLog';
 
-export const QUICK_GAME_GAME_TYPES = { X01: 'x01', CRICKET: 'cricket' };
+export const QUICK_GAME_GAME_TYPES = { X01: 'x01', CRICKET: 'cricket', BOB27: 'bob27' };
 export const QUICK_GAME_SCORING_MODES = { ONE_DEVICE: 'one_device', EACH_OWN: 'each_own' };
 
 const LOBBY_POLL_MS = 45000;
@@ -16,6 +16,7 @@ const LOBBY_POLL_MS = 45000;
 export function normalizeLobbyGameType(value) {
 	const raw = String(value ?? 'x01').toLowerCase();
 	if (raw === 'cricket') return 'cricket';
+	if (raw === 'bob27') return 'bob27';
 	if (raw === '501') return 'x01';
 	return 'x01';
 }

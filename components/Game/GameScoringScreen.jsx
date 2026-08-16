@@ -60,7 +60,9 @@ import { playCheckoutWinSound, playClick, playGameOn, playVisitScore } from '../
 import { buildFfaPresenceBannerMessages } from '../../helpers/ffaPresenceMessages';
 import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
 import { isCricketGameType } from '../../helpers/cricket';
+import { isBob27GameType } from '../../helpers/bob27';
 import CricketGameScoringScreen from './CricketGameScoringScreen';
+import Bob27GameScoringScreen from './Bob27GameScoringScreen';
 
 const GameScoringScreen = ({ route, navigation }) => {
 	const { auth, setAuth } = useAuth();
@@ -1136,6 +1138,9 @@ function GameScoringScreenRouter({ route, navigation }) {
 	const format = normalizeMatchFormat(gameCtx.matchFormat);
 	if (isCricketGameType(format.gameType)) {
 		return <CricketGameScoringScreen route={route} navigation={navigation} />;
+	}
+	if (isBob27GameType(format.gameType)) {
+		return <Bob27GameScoringScreen route={route} navigation={navigation} />;
 	}
 	return <GameScoringScreen route={route} navigation={navigation} />;
 }

@@ -254,6 +254,14 @@ export const getQuickGameFfaCricketUndoUrl = (lobbyId) =>
 	'/' +
 	lobbyId +
 	'/ffa/cricket/darts/undo';
+export const getQuickGameFfaBob27DartUrl = (lobbyId) =>
+	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/bob27/darts';
+export const getQuickGameFfaBob27UndoUrl = (lobbyId) =>
+	API_BASE_URL +
+	QUICK_GAME_LOBBY_PREFIX +
+	'/' +
+	lobbyId +
+	'/ffa/bob27/darts/undo';
 export const QUICK_GAME_LOBBY_ACTIVE_MATCH_URL =
 	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/active-match';
 

@@ -1,0 +1,30 @@
+export {
+	BOB27_APPLY,
+	BOB27_RESTORE,
+	BOB27_LEG_WIN,
+	BOB27_LEG_RESET,
+	initialBob27State,
+	bob27Reducer,
+} from './bob27Reducer.js';
+
+export {
+	BOB27_STARTING_SCORE,
+	BOB27_MODE_EASY,
+	BOB27_MODE_HARD,
+	BOB27_LAST_TARGET_INDEX,
+	BOB27_KIND_CONTINUE,
+	BOB27_KIND_WIN,
+	BOB27_KIND_TIE_RESET,
+	BOB27_KIND_BUST,
+	bob27TargetValue,
+	bob27TargetLabel,
+	normalizeBob27Mode,
+	applyBob27Visit,
+	shouldEliminateBob27,
+	bob27PerfectScore,
+	emptyBob27Board,
+	bob27ActiveIndices,
+	bob27AllActiveHaveThrown,
+	resolveBob27AfterCompletedVisit,
+	isBob27GameType,
+} from './bob27Rules.js';

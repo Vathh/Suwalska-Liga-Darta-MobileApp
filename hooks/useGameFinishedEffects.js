@@ -89,7 +89,11 @@ export function useGameFinishedEffects({
 			players,
 			playerStates,
 			matchFormat,
-			gameType: matchFormat?.gameType === 'cricket' ? 'cricket' : 'x01',
+			gameType: matchFormat?.gameType === 'cricket'
+				? 'cricket'
+				: matchFormat?.gameType === 'bob27'
+					? 'bob27'
+					: 'x01',
 		});
 		onFinished?.({
 			winnerName: players[winnerIdx]?.name,

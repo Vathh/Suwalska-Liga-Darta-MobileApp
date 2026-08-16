@@ -359,10 +359,36 @@ const QuickGameLobby = ({ navigation, route }) => {
             >
               <Text style={[styles.gameTypeBtnText, gameType === GAME_TYPES.CRICKET && styles.gameTypeBtnTextActive]}>Cricket</Text>
             </Pressable>
+            <Pressable
+              style={[styles.gameTypeBtn, gameType === GAME_TYPES.BOB27 && styles.gameTypeBtnActive]}
+              onPress={() => {
+                if (isHost) {
+                  setGameType(GAME_TYPES.BOB27);
+                  const next = normalizeMatchFormat({
+                    ...matchFormat,
+                    gameType: GAME_TYPES.BOB27,
+                    setsToWinMatch: 1,
+                  });
+                  setMatchFormat(next);
+                  handleUpdateSettings({
+                    gameType: GAME_TYPES.BOB27,
+                    matchFormat: next,
+                  });
+                }
+              }}
+              disabled={!isHost}
+            >
+              <Text style={[styles.gameTypeBtnText, gameType === GAME_TYPES.BOB27 && styles.gameTypeBtnTextActive]}>Bob's 27</Text>
+            </Pressable>
           </View>
           {gameType === GAME_TYPES.CRICKET ? (
             <Text style={styles.hintSmall}>
               Cricket: standard scoring, tylko legi (bez setów). Działa na 1 urządzeniu i każdy na swoim.
+            </Text>
+          ) : null}
+          {gameType === GAME_TYPES.BOB27 ? (
+            <Text style={styles.hintSmall}>
+              Bob's 27: duble D1–D20 + inner bull. Hard = koniec przy ≤ 0, Easy = ujemne punkty. Tylko inner bull.
             </Text>
           ) : null}
         </View>
@@ -375,7 +401,7 @@ const QuickGameLobby = ({ navigation, route }) => {
               onChange={(next) => {
                 const withType = normalizeMatchFormat({
                   ...next,
-                  gameType: gameType === GAME_TYPES.CRICKET ? GAME_TYPES.CRICKET : GAME_TYPES.X01,
+                  gameType,
                 });
                 setMatchFormat(withType);
                 handleUpdateSettings({ matchFormat: withType, gameType: withType.gameType });
@@ -1007,6 +1033,7 @@ const styles = StyleSheet.create({
   },
   gameTypeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginTop: 8,
   },
