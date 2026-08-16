@@ -10,6 +10,7 @@ import {
   scoreUnitLabel,
 } from '../../helpers/matchFormat/matchFormatScoring'
 import { colors } from '../../theme/colors'
+import TickingScore from './TickingScore'
 
 const PER_DART_ACCENT = colors.perDartAccent;
 
@@ -166,7 +167,7 @@ const Counter = ({
 
     return (
       <View style={styles.localVisitRemainingOverlay} pointerEvents="none">
-        <Text style={styles.localVisitRemainingText}>{displayValue}</Text>
+        <TickingScore value={displayValue} style={styles.localVisitRemainingText} />
       </View>
     );
   };
@@ -177,7 +178,7 @@ const Counter = ({
     const mainScore = playerStates[playerIndex]?.score ?? 501;
     const displayValue = localVisitRemaining ?? mainScore;
     return (
-      <Text style={styles.localVisitRemainingTextMulti}>{displayValue}</Text>
+      <TickingScore value={displayValue} style={styles.localVisitRemainingTextMulti} />
     );
   };
 
@@ -426,28 +427,26 @@ const Counter = ({
             <View style={[styles.counterContainer, styles.counterContainerWithBorder]}>
               <View style={[styles.counterScoreStack, isPerDart && styles.counterScoreStackOverlayRoot]}>
                 {renderLocalVisitRemainingOverlay(0)}
-                <Text
+                <TickingScore
+                  value={s0?.score ?? 501}
                   style={[styles.counterText, styles.counterTextNoFlex, currentPlayerIndex === 0 && styles.goldText]}
                   adjustsFontSizeToFit
                   numberOfLines={1}
                   minimumFontScale={0.4}
-                >
-                  {s0?.score ?? 501}
-                </Text>
+                />
                 {renderVisitDartsUnderScore(0, { overlay: isPerDart })}
               </View>
             </View>
             <View style={styles.counterContainer}>
               <View style={[styles.counterScoreStack, isPerDart && styles.counterScoreStackOverlayRoot]}>
                 {renderLocalVisitRemainingOverlay(1)}
-                <Text
+                <TickingScore
+                  value={s1?.score ?? 501}
                   style={[styles.counterText, styles.counterTextNoFlex, currentPlayerIndex === 1 && styles.goldText]}
                   adjustsFontSizeToFit
                   numberOfLines={1}
                   minimumFontScale={0.4}
-                >
-                  {s1?.score ?? 501}
-                </Text>
+                />
                 {renderVisitDartsUnderScore(1, { alignRight: true, overlay: isPerDart })}
               </View>
             </View>
@@ -510,9 +509,10 @@ const Counter = ({
               {renderVisitDartsColumn(i)}
               <View style={styles.multiRowCenter}>
                 {renderLocalVisitRemaining(i, 'multi')}
-                <Text style={[styles.multiScore, i === currentPlayerIndex && styles.goldText]}>
-                  {st?.score ?? 501}
-                </Text>
+                <TickingScore
+                  value={st?.score ?? 501}
+                  style={[styles.multiScore, i === currentPlayerIndex && styles.goldText]}
+                />
                 <Text style={styles.multiLegs}>
                   {matchScoreForDisplay(st, format)} {unitLabel}
                   {multiSet ? ` · ${legScoreInSetForDisplay(st)} legi` : ''}
