@@ -7,6 +7,12 @@ import {
 	getQuickGameFfaCricketUndoUrl,
 	getQuickGameFfaBob27DartUrl,
 	getQuickGameFfaBob27UndoUrl,
+	getQuickGameFfaAtcVisitUrl,
+	getQuickGameFfaAtcUndoUrl,
+	getQuickGameFfaCatch40VisitUrl,
+	getQuickGameFfaCatch40UndoUrl,
+	getQuickGameFfaCricket56VisitUrl,
+	getQuickGameFfaCricket56UndoUrl,
 	QUICK_GAME_LOBBY_ACTIVE_MATCH_URL,
 } from './apiConfig';
 import { throwIfScoringResponseNotOk } from './gameScoring/scoringRequestError.js';
@@ -147,7 +153,7 @@ export async function recordFfaBob27Dart(lobbyId, accessToken, payload) {
 	});
 	const data = await res.json();
 	if (!res.ok) {
-		throw new Error(data?.message || 'Nie udało się zapisać rzutu');
+		throw new Error(data?.message || 'Nie udało się zapisać wizyty');
 	}
 	return data;
 }
@@ -163,6 +169,102 @@ export async function undoFfaBob27Dart(lobbyId, accessToken) {
 	const data = await res.json();
 	if (!res.ok) {
 		throw new Error(data?.message || 'Nie udało się cofnąć rzutu');
+	}
+	return data;
+}
+
+export async function recordFfaAtcVisit(lobbyId, accessToken, payload) {
+	const res = await fetch(getQuickGameFfaAtcVisitUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+		body: JSON.stringify(payload),
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się zapisać wizyty');
+	}
+	return data;
+}
+
+export async function undoFfaAtcVisit(lobbyId, accessToken) {
+	const res = await fetch(getQuickGameFfaAtcUndoUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się cofnąć wizyty');
+	}
+	return data;
+}
+
+export async function recordFfaCatch40Visit(lobbyId, accessToken, payload) {
+	const res = await fetch(getQuickGameFfaCatch40VisitUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+		body: JSON.stringify(payload),
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się zapisać wizyty');
+	}
+	return data;
+}
+
+export async function undoFfaCatch40Visit(lobbyId, accessToken) {
+	const res = await fetch(getQuickGameFfaCatch40UndoUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się cofnąć wizyty');
+	}
+	return data;
+}
+
+export async function recordFfaCricket56Visit(lobbyId, accessToken, payload) {
+	const res = await fetch(getQuickGameFfaCricket56VisitUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+		body: JSON.stringify(payload),
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się zapisać wizyty');
+	}
+	return data;
+}
+
+export async function undoFfaCricket56Visit(lobbyId, accessToken) {
+	const res = await fetch(getQuickGameFfaCricket56UndoUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	const data = await res.json();
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się cofnąć wizyty');
 	}
 	return data;
 }

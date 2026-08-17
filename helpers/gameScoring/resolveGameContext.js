@@ -7,6 +7,9 @@ import { normalizeTournamentPlayers } from '../normalizeTournamentPlayers';
 import { createFfaTransport } from './transports/createFfaTransport.js';
 import { createFfaCricketTransport } from './transports/createFfaCricketTransport.js';
 import { createFfaBob27Transport } from './transports/createFfaBob27Transport.js';
+import { createFfaAtcTransport } from './transports/createFfaAtcTransport.js';
+import { createFfaCatch40Transport } from './transports/createFfaCatch40Transport.js';
+import { createFfaCricket56Transport } from './transports/createFfaCricket56Transport.js';
 import { createTournamentTransport } from './transports/createTournamentTransport.js';
 
 export const GAME_MODE = {
@@ -86,7 +89,12 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 	).toLowerCase();
 	const isCricket = resolvedGameType === 'cricket';
 	const isBob27 = resolvedGameType === 'bob27';
-	const minPlayers = isBob27 ? 1 : 2;
+	const isAtc = resolvedGameType === 'atc' || resolvedGameType === 'around_the_clock';
+	const isCatch40 = resolvedGameType === 'catch40' || resolvedGameType === 'catch_40';
+	const isCricket56 = resolvedGameType === 'cricket56'
+		|| resolvedGameType === 'cricket_56'
+		|| resolvedGameType === 'cricketsequence';
+	const minPlayers = mode === GAME_MODE.TRAINING ? 1 : 2;
 	const N = Math.min(Math.max(players.length, minPlayers), 8);
 	const myPlayerIndex = resolveMyPlayerIndex(matchConfig, auth, players);
 
@@ -95,12 +103,18 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 		!!lobbyId &&
 		!isCricket &&
 		!isBob27 &&
+		!isAtc &&
+		!isCatch40 &&
+		!isCricket56 &&
 		(quickGame?.gameType === '501'
 			|| quickGame?.gameType === 'x01'
 			|| quickGame?.gameType === undefined
 			|| resolvedGameType === 'x01');
 	const hasOnlineCricket = isQuick && !!lobbyId && isCricket;
 	const hasOnlineBob27 = isQuick && !!lobbyId && isBob27;
+	const hasOnlineAtc = isQuick && !!lobbyId && isAtc;
+	const hasOnlineCatch40 = isQuick && !!lobbyId && isCatch40;
+	const hasOnlineCricket56 = isQuick && !!lobbyId && isCricket56;
 	const accessToken = auth?.accessToken ?? null;
 
 	let transport = null;
@@ -132,6 +146,36 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 		reloadKey = lobbyId;
 	} else if (hasOnlineBob27 && accessToken) {
 		transport = createFfaBob27Transport({
+			lobbyId,
+			accessToken,
+			lobbyScoringMode,
+			isHost,
+			myPlayerIndexFromLobby: myPlayerIndex,
+			getCurrentPlayerIndex,
+		});
+		reloadKey = lobbyId;
+	} else if (hasOnlineAtc && accessToken) {
+		transport = createFfaAtcTransport({
+			lobbyId,
+			accessToken,
+			lobbyScoringMode,
+			isHost,
+			myPlayerIndexFromLobby: myPlayerIndex,
+			getCurrentPlayerIndex,
+		});
+		reloadKey = lobbyId;
+	} else if (hasOnlineCatch40 && accessToken) {
+		transport = createFfaCatch40Transport({
+			lobbyId,
+			accessToken,
+			lobbyScoringMode,
+			isHost,
+			myPlayerIndexFromLobby: myPlayerIndex,
+			getCurrentPlayerIndex,
+		});
+		reloadKey = lobbyId;
+	} else if (hasOnlineCricket56 && accessToken) {
+		transport = createFfaCricket56Transport({
 			lobbyId,
 			accessToken,
 			lobbyScoringMode,

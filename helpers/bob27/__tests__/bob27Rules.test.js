@@ -1,5 +1,6 @@
 import {
 	applyBob27Visit,
+	bob27LastTargetIndex,
 	bob27PerfectScore,
 	resolveBob27AfterCompletedVisit,
 	shouldEliminateBob27,
@@ -17,7 +18,9 @@ function assert(condition, message) {
 }
 
 export function testBob27PerfectScore() {
-	assert(bob27PerfectScore() === 1437, 'perfect score 1437');
+	assert(bob27PerfectScore() === 1437, 'perfect score 1437 with bull');
+	assert(bob27PerfectScore(true) === 1437, 'perfect score 1437');
+	assert(bob27PerfectScore(false) === 1287, 'perfect score 1287 without bull');
 }
 
 export function testBob27VisitMath() {
@@ -63,6 +66,32 @@ export function testBob27BoardCompleteAndTie() {
 		{ 0: true, 1: true },
 	);
 	assert(tie.kind === BOB27_KIND_TIE_RESET, 'tie resets');
+
+	const winNoBull = resolveBob27AfterCompletedVisit(
+		[
+			{ score: 80, eliminated: false },
+			{ score: 40, eliminated: false },
+		],
+		'easy',
+		bob27LastTargetIndex(false),
+		{ 0: true, 1: true },
+		[],
+		false,
+	);
+	assert(winNoBull.kind === BOB27_KIND_WIN && winNoBull.winnerIndex === 0, 'D20 ends without bull');
+
+	const continueWithBull = resolveBob27AfterCompletedVisit(
+		[
+			{ score: 80, eliminated: false },
+			{ score: 40, eliminated: false },
+		],
+		'easy',
+		bob27LastTargetIndex(false),
+		{ 0: true, 1: true },
+		[],
+		true,
+	);
+	assert(continueWithBull.kind === BOB27_KIND_CONTINUE, 'with bull still plays inner bull');
 
 	const mid = resolveBob27AfterCompletedVisit(
 		[

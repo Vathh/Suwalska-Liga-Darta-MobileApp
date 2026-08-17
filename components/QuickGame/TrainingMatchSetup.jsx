@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import MatchFormatPicker, { DEFAULT_MATCH_FORMAT } from './MatchFormatPicker';
-import { isBob27Format, normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
+import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
 import {
 	loadPersistedMatchFormat,
 	savePersistedMatchFormat,
@@ -28,8 +28,7 @@ import {
 import { removeTempPlayerStats } from '../../helpers/trainingHistory/persistTempPlayerStats';
 import { colors } from '../../theme/colors';
 
-const MIN_PLAYERS = 2;
-const MIN_PLAYERS_BOB27 = 1;
+const MIN_PLAYERS = 1;
 const MAX_PLAYERS = 8;
 
 const TrainingMatchSetup = ({ navigation, route }) => {
@@ -181,13 +180,11 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 
 	const startTraining = async () => {
 		const format = normalizeMatchFormat(matchFormat);
-		const minPlayers = isBob27Format(format) ? MIN_PLAYERS_BOB27 : MIN_PLAYERS;
+		const minPlayers = MIN_PLAYERS;
 		if (players.length < minPlayers) {
 			Alert.alert(
 				'Błąd',
-				isBob27Format(format)
-					? 'Dodaj co najmniej jednego gracza'
-					: `Dodaj co najmniej ${minPlayers} graczy`,
+				'Dodaj co najmniej jednego gracza',
 			);
 			return;
 		}
@@ -212,7 +209,7 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 		});
 	};
 
-	const canStart = players.length >= (isBob27Format(matchFormat) ? MIN_PLAYERS_BOB27 : MIN_PLAYERS);
+	const canStart = players.length >= MIN_PLAYERS;
 
 	const listHeader = (
 		<>
@@ -226,9 +223,7 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 				<Text style={styles.label}>Zawodnicy (max 8)</Text>
 				<Text style={styles.hintSmall}>
 					Jeden telefon wpisuje rzuty wszystkich (tryb jedno urządzenie).
-					{isBob27Format(matchFormat)
-						? ' Bob\'s 27 można grać solo albo z innymi (max 8).'
-						: ''}
+					Można grać solo albo z innymi (max 8).
 					{players.length > 0
 						? ' Kolejność rzucania od góry — przytrzymaj wiersz i przeciągnij, albo użyj „Kolejność losowa”.'
 						: ''}
@@ -462,7 +457,7 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 					{listHeader}
 					<View style={styles.emptyPlayersBox}>
 						<Text style={styles.emptyPlayersText}>
-							Dodaj co najmniej {MIN_PLAYERS} graczy, aby rozpocząć trening.
+							Dodaj co najmniej jednego gracza, aby rozpocząć trening.
 						</Text>
 					</View>
 					{listFooter}

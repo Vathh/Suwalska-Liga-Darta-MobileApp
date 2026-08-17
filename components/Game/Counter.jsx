@@ -37,6 +37,8 @@ const Counter = ({
   oneDeviceSpectator = false,
   /** false = ukryj nakładkę „Czekaj na swoją kolejkę” (np. podczas ładowania openera). */
   showWaitingOverlay = true,
+  /** false = tylko pole wyniku + klawiatura (Catch 40 ma własną tabelę remaining). */
+  showPlayerScores = true,
 }) => {
   const format = normalizeMatchFormat(matchFormat);
   const unitLabel = scoreUnitLabel(format);
@@ -387,6 +389,16 @@ const Counter = ({
     );
   };
 
+  if (!showPlayerScores) {
+    return (
+      <View style={[styles.container, styles.padOnlyContainer]}>
+        {renderWaitingOverlay()}
+        {!isPerDart && scoreSection}
+        {isPerDart ? dartPad : numPad}
+      </View>
+    );
+  }
+
   if (isTwoPlayer && N >= 2) {
     const p0 = players[0];
     const p1 = players[1];
@@ -537,6 +549,9 @@ const Counter = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1
+  },
+  padOnlyContainer: {
+    justifyContent: 'flex-end',
   },
   resultContainer: {
     flexDirection: 'row',

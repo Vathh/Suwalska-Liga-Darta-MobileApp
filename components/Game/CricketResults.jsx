@@ -4,7 +4,7 @@ import { colors } from '../../theme/colors';
 
 const CricketResults = ({ players, cricketStates, legsToWin }) => {
   const N = players?.length ?? 0;
-  if (N < 2) return null;
+  if (N < 1) return null;
 
   return (
     <View style={styles.container}>

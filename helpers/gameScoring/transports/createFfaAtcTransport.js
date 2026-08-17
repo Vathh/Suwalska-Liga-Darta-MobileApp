@@ -1,8 +1,8 @@
 import { Alert } from 'react-native';
 import {
 	fetchFfaScoringState,
-	recordFfaBob27Dart,
-	undoFfaBob27Dart,
+	recordFfaAtcVisit,
+	undoFfaAtcVisit,
 } from '../../quickGameFfaApi';
 import { newClientVisitId } from '../newClientVisitId.js';
 
@@ -14,9 +14,9 @@ function unwrapFfaPayload(data) {
 }
 
 /**
- * Transport Bob's 27 FFA (hits 0–3 / undo).
+ * Transport Around the Clock FFA (hits 0–3 / undo).
  */
-export function createFfaBob27Transport({
+export function createFfaAtcTransport({
 	lobbyId,
 	accessToken,
 	lobbyScoringMode,
@@ -36,18 +36,18 @@ export function createFfaBob27Transport({
 	};
 
 	return {
-		format: 'ffa_bob27',
+		format: 'ffa_atc',
 		fetchState: () => fetchFfaScoringState(lobbyId, accessToken),
 		recordVisit: (payload) =>
-			recordFfaBob27Dart(lobbyId, accessToken, payload),
-		undoDart: () => undoFfaBob27Dart(lobbyId, accessToken),
-		newClientDartId: newClientVisitId,
+			recordFfaAtcVisit(lobbyId, accessToken, payload),
+		undoVisit: () => undoFfaAtcVisit(lobbyId, accessToken),
+		newClientVisitId,
 		getRealtimeConfig: () => ({
 			channelName: `private-quick-game-lobby.${lobbyId}`,
 			channelType: 'private',
 			accessToken,
 			events: FFA_WS_EVENTS,
-			scope: 'quick-game-ffa-bob27',
+			scope: 'quick-game-ffa-atc',
 			unwrapPayload: unwrapFfaPayload,
 		}),
 		assertCanInput: (playerIndex) => {

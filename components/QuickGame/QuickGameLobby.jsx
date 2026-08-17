@@ -322,88 +322,13 @@ const QuickGameLobby = ({ navigation, route }) => {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.section}>
-          <Text style={styles.label}>Typ gry</Text>
-          <View style={styles.gameTypeRow}>
-            <Pressable
-              style={[styles.gameTypeBtn, gameType === GAME_TYPES.X01 && styles.gameTypeBtnActive]}
-              onPress={() => {
-                if (isHost) {
-                  setGameType(GAME_TYPES.X01);
-                  const next = normalizeMatchFormat({ ...matchFormat, gameType: GAME_TYPES.X01 });
-                  setMatchFormat(next);
-                  handleUpdateSettings({ gameType: GAME_TYPES.X01, matchFormat: next });
-                }
-              }}
-              disabled={!isHost}
-            >
-              <Text style={[styles.gameTypeBtnText, gameType === GAME_TYPES.X01 && styles.gameTypeBtnTextActive]}>501</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.gameTypeBtn, gameType === GAME_TYPES.CRICKET && styles.gameTypeBtnActive]}
-              onPress={() => {
-                if (isHost) {
-                  setGameType(GAME_TYPES.CRICKET);
-                  const next = normalizeMatchFormat({
-                    ...matchFormat,
-                    gameType: GAME_TYPES.CRICKET,
-                    setsToWinMatch: 1,
-                  });
-                  setMatchFormat(next);
-                  handleUpdateSettings({
-                    gameType: GAME_TYPES.CRICKET,
-                    matchFormat: next,
-                  });
-                }
-              }}
-              disabled={!isHost}
-            >
-              <Text style={[styles.gameTypeBtnText, gameType === GAME_TYPES.CRICKET && styles.gameTypeBtnTextActive]}>Cricket</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.gameTypeBtn, gameType === GAME_TYPES.BOB27 && styles.gameTypeBtnActive]}
-              onPress={() => {
-                if (isHost) {
-                  setGameType(GAME_TYPES.BOB27);
-                  const next = normalizeMatchFormat({
-                    ...matchFormat,
-                    gameType: GAME_TYPES.BOB27,
-                    setsToWinMatch: 1,
-                  });
-                  setMatchFormat(next);
-                  handleUpdateSettings({
-                    gameType: GAME_TYPES.BOB27,
-                    matchFormat: next,
-                  });
-                }
-              }}
-              disabled={!isHost}
-            >
-              <Text style={[styles.gameTypeBtnText, gameType === GAME_TYPES.BOB27 && styles.gameTypeBtnTextActive]}>Bob's 27</Text>
-            </Pressable>
-          </View>
-          {gameType === GAME_TYPES.CRICKET ? (
-            <Text style={styles.hintSmall}>
-              Cricket: standard scoring, tylko legi (bez setów). Działa na 1 urządzeniu i każdy na swoim.
-            </Text>
-          ) : null}
-          {gameType === GAME_TYPES.BOB27 ? (
-            <Text style={styles.hintSmall}>
-              Bob's 27: duble D1–D20 + inner bull. Hard = koniec przy ≤ 0, Easy = ujemne punkty. Tylko inner bull.
-            </Text>
-          ) : null}
-        </View>
-
-        <View style={styles.section}>
           {isHost ? (
             <MatchFormatPicker
               value={matchFormat}
-              allowCricket={false}
               onChange={(next) => {
-                const withType = normalizeMatchFormat({
-                  ...next,
-                  gameType,
-                });
+                const withType = normalizeMatchFormat(next);
                 setMatchFormat(withType);
+                setGameType(withType.gameType);
                 handleUpdateSettings({ matchFormat: withType, gameType: withType.gameType });
               }}
             />

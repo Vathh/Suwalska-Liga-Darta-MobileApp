@@ -1,22 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
-import { BOB27_APPLY } from '../helpers/bob27';
+import { CRICKET56_APPLY } from '../helpers/cricket56';
 import { useGameScoringRealtime } from './useGameScoringRealtime';
 
 const BACKUP_POLL_MS = 2500;
 
-/**
- * Sync stanu Bob's 27 FFA (GET + WS + poll). Wzorzec jak useCricketFfaScoring.
- */
-export function useBob27FfaScoring({
+export function useCricket56FfaScoring({
 	enabled,
 	transport,
 	N,
-	bob27Dispatches,
+	cricket56Dispatches,
 	setCurrentPlayerIndex,
-	setDartsInVisit,
-	setHitsInVisit,
-	setCurrentTargetIndex,
+	setCurrentRoundIndex,
 	setGameClosed,
 	legOpenerIndexRef,
 	onFinishedQuickGameId,
@@ -29,8 +24,8 @@ export function useBob27FfaScoring({
 	const [busy, setBusy] = useState(false);
 	const [canInputFromServer, setCanInputFromServer] = useState(true);
 
-	const dispatchesRef = useRef(bob27Dispatches);
-	dispatchesRef.current = bob27Dispatches;
+	const dispatchesRef = useRef(cricket56Dispatches);
+	dispatchesRef.current = cricket56Dispatches;
 
 	const applyState = useCallback(
 		(state) => {
@@ -58,9 +53,8 @@ export function useBob27FfaScoring({
 				const p = state.players[i];
 				if (!p || !dispatches[i]) continue;
 				dispatches[i]({
-					type: BOB27_APPLY,
-					score: Number(p.score ?? 27),
-					eliminated: !!p.eliminated,
+					type: CRICKET56_APPLY,
+					score: Number(p.score ?? 0),
 					legsWon: Number(p.legsWon ?? 0),
 				});
 			}
@@ -68,14 +62,8 @@ export function useBob27FfaScoring({
 			setCurrentPlayerIndex(Number(state.turn?.currentPlayerIndex
 				?? state.session.currentPlayerIndex
 				?? 0));
-			setDartsInVisit(Number(state.turn?.dartsInVisit
-				?? state.session.dartsInVisit
-				?? 0));
-			setHitsInVisit?.(Number(state.turn?.hitsInVisit
-				?? state.session.hitsInVisit
-				?? 0));
-			setCurrentTargetIndex?.(Number(state.turn?.currentTargetIndex
-				?? state.session.currentTargetIndex
+			setCurrentRoundIndex?.(Number(state.turn?.currentRoundIndex
+				?? state.session.currentRoundIndex
 				?? 0));
 			if (legOpenerIndexRef) {
 				legOpenerIndexRef.current = Number(
@@ -89,10 +77,8 @@ export function useBob27FfaScoring({
 			legOpenerIndexRef,
 			onFinishedQuickGameId,
 			setCurrentPlayerIndex,
-			setCurrentTargetIndex,
-			setDartsInVisit,
+			setCurrentRoundIndex,
 			setGameClosed,
-			setHitsInVisit,
 		],
 	);
 
@@ -102,7 +88,7 @@ export function useBob27FfaScoring({
 			const state = await transport.fetchState();
 			applyState(state);
 		} catch (e) {
-			console.warn('useBob27FfaScoring loadState', e);
+			console.warn('useCricket56FfaScoring loadState', e);
 		}
 	}, [applyState, enabled, transport]);
 
@@ -129,7 +115,7 @@ export function useBob27FfaScoring({
 		channelType: realtimeConfig?.channelType ?? 'private',
 		accessToken: realtimeConfig?.accessToken ?? null,
 		events: realtimeConfig?.events,
-		scope: realtimeConfig?.scope ?? 'bob27-ffa',
+		scope: realtimeConfig?.scope ?? 'cricket56-ffa',
 		unwrapPayload: realtimeConfig?.unwrapPayload,
 		onGameState: applyState,
 		onWsHealthChange: () => {},
@@ -152,14 +138,14 @@ export function useBob27FfaScoring({
 	);
 
 	const submitVisit = useCallback(
-		(playerId, hits) => {
+		(playerId, points) => {
 			if (!transport?.recordVisit) return Promise.resolve();
 			return enqueueWrite(async () => {
 				try {
 					const state = await transport.recordVisit({
 						playerId,
-						hits,
-						clientDartId: transport.newClientDartId(),
+						points,
+						clientVisitId: transport.newClientVisitId?.() ?? transport.newClientDartId?.(),
 					});
 					applyState(state);
 				} catch (e) {
@@ -173,10 +159,10 @@ export function useBob27FfaScoring({
 	);
 
 	const submitUndo = useCallback(() => {
-		if (!transport?.undoDart) return Promise.resolve();
+		if (!transport?.undoVisit && !transport?.undoDart) return Promise.resolve();
 		return enqueueWrite(async () => {
 			try {
-				const state = await transport.undoDart();
+				const state = await (transport.undoVisit?.() ?? transport.undoDart());
 				applyState(state);
 			} catch (e) {
 				Alert.alert('Błąd', e?.message ?? 'Nie udało się cofnąć');

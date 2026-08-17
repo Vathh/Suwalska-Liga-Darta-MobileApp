@@ -262,6 +262,30 @@ export const getQuickGameFfaBob27UndoUrl = (lobbyId) =>
 	'/' +
 	lobbyId +
 	'/ffa/bob27/darts/undo';
+export const getQuickGameFfaAtcVisitUrl = (lobbyId) =>
+	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/atc/visits';
+export const getQuickGameFfaAtcUndoUrl = (lobbyId) =>
+	API_BASE_URL +
+	QUICK_GAME_LOBBY_PREFIX +
+	'/' +
+	lobbyId +
+	'/ffa/atc/visits/undo';
+export const getQuickGameFfaCatch40VisitUrl = (lobbyId) =>
+	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/catch40/visits';
+export const getQuickGameFfaCatch40UndoUrl = (lobbyId) =>
+	API_BASE_URL +
+	QUICK_GAME_LOBBY_PREFIX +
+	'/' +
+	lobbyId +
+	'/ffa/catch40/visits/undo';
+export const getQuickGameFfaCricket56VisitUrl = (lobbyId) =>
+	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/' + lobbyId + '/ffa/cricket56/visits';
+export const getQuickGameFfaCricket56UndoUrl = (lobbyId) =>
+	API_BASE_URL +
+	QUICK_GAME_LOBBY_PREFIX +
+	'/' +
+	lobbyId +
+	'/ffa/cricket56/visits/undo';
 export const QUICK_GAME_LOBBY_ACTIVE_MATCH_URL =
 	API_BASE_URL + QUICK_GAME_LOBBY_PREFIX + '/active-match';
 

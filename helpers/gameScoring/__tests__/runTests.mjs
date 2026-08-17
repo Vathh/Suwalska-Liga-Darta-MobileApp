@@ -1,5 +1,8 @@
 import { runCricketTests } from '../../cricket/__tests__/cricketRules.test.js';
 import { runBob27Tests } from '../../bob27/__tests__/bob27Rules.test.js';
+import { runAtcTests } from '../../atc/__tests__/atcRules.test.js';
+import { runCatch40Tests } from '../../catch40/__tests__/catch40Rules.test.js';
+import { runCricket56Tests } from '../../cricket56/__tests__/cricket56Rules.test.js';
 import { runAchievementHandlersTests } from './achievementHandlers.test.js';
 import { runDartHistoryTrackerTests } from './dartHistoryTracker.test.js';
 import {
@@ -590,6 +593,9 @@ const tests = [
 	['scoring request error retryable', testScoringRequestErrorRetryable],
 	['cricket rules', runCricketTests],
 	['bob27 rules', runBob27Tests],
+	['atc rules', runAtcTests],
+	['catch40 rules', runCatch40Tests],
+	['cricket56 rules', runCricket56Tests],
 	['achievement handlers', runAchievementHandlersTests],
 	['dart history tracker', runDartHistoryTrackerTests],
 ];

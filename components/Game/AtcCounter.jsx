@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { bob27TargetLabel, bob27TargetValue } from '../../helpers/bob27';
+import { atcMaxHits, atcTargetLabel } from '../../helpers/atc';
 import { colors } from '../../theme/colors';
 
 function rowHeightForPlayerCount(n) {
@@ -12,22 +12,21 @@ function rowHeightForPlayerCount(n) {
 
 const HIT_OPTIONS = [0, 1, 2, 3];
 
-export default function Bob27Counter({
+export default function AtcCounter({
 	players,
-	bob27States,
+	atcStates,
 	currentPlayerIndex,
-	currentTargetIndex = 0,
 	onVisit,
 	onUndo,
 	gameClosed = false,
-	mode = 'hard',
-	includeBull = true,
 }) {
 	const N = players?.length ?? 0;
 	if (N < 1) return null;
 	const rowHeight = rowHeightForPlayerCount(N);
-	const targetLabel = bob27TargetLabel(currentTargetIndex, includeBull);
-	const targetValue = bob27TargetValue(currentTargetIndex, includeBull);
+	const thrower = atcStates[currentPlayerIndex] ?? {};
+	const targetIndex = thrower.targetIndex ?? 0;
+	const targetLabel = atcTargetLabel(targetIndex);
+	const maxHits = atcMaxHits(targetIndex);
 
 	return (
 		<View style={styles.container}>
@@ -35,17 +34,16 @@ export default function Bob27Counter({
 				<Text style={styles.targetKicker}>Cel</Text>
 				<Text style={styles.targetLabel}>{targetLabel}</Text>
 				<Text style={styles.targetMeta}>
-					trafienie +{targetValue} · 3 pudła −{targetValue}
-					{mode === 'easy' ? ' · easy' : ' · hard'}
-					{includeBull ? ' · z bullem' : ' · bez bulla'}
+					dowolny segment · bez przeskoków · finisz: bull
 				</Text>
 			</View>
 
 			<View style={styles.tableWrapper}>
 				<ScrollView contentContainerStyle={styles.tableContent}>
 					{players.slice(0, N).map((p, i) => {
-						const st = bob27States[i] ?? {};
+						const st = atcStates[i] ?? {};
 						const active = i === currentPlayerIndex && !gameClosed;
+						const label = atcTargetLabel(st.targetIndex ?? 0);
 						return (
 							<View
 								key={i}
@@ -53,16 +51,13 @@ export default function Bob27Counter({
 									styles.playerRow,
 									{ minHeight: rowHeight },
 									active && styles.playerRowActive,
-									st.eliminated && styles.playerRowOut,
 								]}
 							>
 								<Text style={styles.playerName} numberOfLines={1}>
 									{p?.name ?? 'Gracz'}
 									<Text style={styles.legsInline}> ({st.legsWon ?? 0})</Text>
 								</Text>
-								<Text style={[styles.playerScore, st.eliminated && styles.playerOut]}>
-									{st.eliminated ? 'OUT' : (st.score ?? 27)}
-								</Text>
+								<Text style={styles.playerScore}>{label}</Text>
 							</View>
 						);
 					})}
@@ -71,35 +66,38 @@ export default function Bob27Counter({
 
 			<View style={styles.bottomSection}>
 				<View style={styles.scoreSection}>
-					<Text style={styles.prompt}>Ile lotek w celu?</Text>
+					<Text style={styles.prompt}>Ile kolejnych numerów?</Text>
 					<Pressable style={styles.undoBtn} onPress={onUndo} disabled={gameClosed}>
 						<Text style={styles.undoText}>Cofnij</Text>
 					</Pressable>
 				</View>
 				<View style={styles.actionRow}>
-					{HIT_OPTIONS.map((hits) => (
-						<Pressable
-							key={hits}
-							style={[
-								styles.hitBtn,
-								hits === 0 && styles.hitBtnZero,
-								hits === 3 && styles.hitBtnThree,
-								gameClosed && styles.btnDisabled,
-							]}
-							onPress={() => onVisit?.(hits)}
-							disabled={gameClosed}
-						>
-							<Text
+					{HIT_OPTIONS.map((hits) => {
+						const disabled = gameClosed || hits > maxHits;
+						return (
+							<Pressable
+								key={hits}
 								style={[
-									styles.hitBtnText,
-									hits === 0 && styles.hitBtnTextZero,
-									hits === 3 && styles.hitBtnTextThree,
+									styles.hitBtn,
+									hits === 0 && styles.hitBtnZero,
+									hits === 3 && hits <= maxHits && styles.hitBtnThree,
+									disabled && styles.btnDisabled,
 								]}
+								onPress={() => onVisit?.(hits)}
+								disabled={disabled}
 							>
-								{hits}
-							</Text>
-						</Pressable>
-					))}
+								<Text
+									style={[
+										styles.hitBtnText,
+										hits === 0 && styles.hitBtnTextZero,
+										hits === 3 && hits <= maxHits && styles.hitBtnTextThree,
+									]}
+								>
+									{hits}
+								</Text>
+							</Pressable>
+						);
+					})}
 				</View>
 			</View>
 		</View>
@@ -165,9 +163,6 @@ const styles = StyleSheet.create({
 	playerRowActive: {
 		backgroundColor: colors.accentSoft,
 	},
-	playerRowOut: {
-		opacity: 0.55,
-	},
 	playerName: {
 		flex: 1,
 		color: colors.textSecondary,
@@ -184,10 +179,6 @@ const styles = StyleSheet.create({
 		fontWeight: '700',
 		minWidth: 64,
 		textAlign: 'right',
-	},
-	playerOut: {
-		color: colors.dangerAlt,
-		fontSize: 16,
 	},
 	bottomSection: {
 		paddingBottom: 16,

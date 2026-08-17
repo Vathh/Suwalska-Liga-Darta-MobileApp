@@ -4,41 +4,38 @@ import { useIsFocused } from '@react-navigation/native';
 import { Alert, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-	BOB27_APPLY,
-	BOB27_KIND_BUST,
-	BOB27_KIND_TIE_RESET,
-	BOB27_KIND_WIN,
-	BOB27_LEG_RESET,
-	BOB27_LEG_WIN,
-	BOB27_RESTORE,
-	applyBob27Visit,
-	bob27AllActiveHaveThrown,
-	bob27LastTargetIndex,
-	bob27Reducer,
-	initialBob27State,
-	normalizeBob27Mode,
-	resolveBob27AfterCompletedVisit,
-	shouldEliminateBob27,
-} from '../../helpers/bob27';
+	CRICKET56_APPLY,
+	CRICKET56_KIND_TIE_RESET,
+	CRICKET56_KIND_WIN,
+	CRICKET56_LAST_ROUND_INDEX,
+	CRICKET56_LEG_RESET,
+	CRICKET56_LEG_WIN,
+	CRICKET56_RESTORE,
+	applyCricket56Visit,
+	cricket56AllActiveHaveThrown,
+	cricket56Reducer,
+	initialCricket56State,
+	resolveCricket56AfterCompletedVisit,
+} from '../../helpers/cricket56';
 import { computeNextLegOpener } from '../../helpers/computeNextLegOpener';
-import { includesBob27Bull, normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
+import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
 import {
 	GAME_MODE,
 	resolveGameContext,
 } from '../../helpers/gameScoring';
 import { saveCompletedTrainingGame } from '../../helpers/trainingHistory/saveCompletedTrainingGame';
 import useAuth from '../../hooks/useAuth';
-import { useBob27FfaScoring } from '../../hooks/useBob27FfaScoring';
+import { useCricket56FfaScoring } from '../../hooks/useCricket56FfaScoring';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
 import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
 import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
-import Bob27Counter from './Bob27Counter';
+import Cricket56Counter from './Cricket56Counter';
 import GameFinishedModal from './GameFinishedModal';
 import GameScoringModals from './GameScoringModals';
 import { gameScoringScreenStyles as styles } from './GameScoringScreen.styles';
 import { colors } from '../../theme/colors';
 
-export default function Bob27GameScoringScreen({ route, navigation }) {
+export default function Cricket56GameScoringScreen({ route, navigation }) {
 	const { auth } = useAuth();
 	const isFocused = useIsFocused();
 	const insets = useSafeAreaInsets();
@@ -62,17 +59,12 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 	} = gameCtx;
 	const matchFormat = normalizeMatchFormat(routeMatchFormat);
 	const legsToWin = matchFormat.legsToWinSet ?? 2;
-	const bob27Mode = normalizeBob27Mode(matchFormat.bob27Mode);
-	const includeBull = includesBob27Bull(matchFormat);
-	const lastTargetIndex = bob27LastTargetIndex(includeBull);
 
 	const [isModalVisible, setIsModalVisible] = useState(!!showStartModal);
 	const [gameClosed, setGameClosed] = useState(false);
 	const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-	const [dartsInVisit, setDartsInVisit] = useState(0);
-	const [hitsInVisit, setHitsInVisit] = useState(0);
-	const [currentTargetIndex, setCurrentTargetIndex] = useState(0);
-	const thrownThisTargetRef = useRef({});
+	const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
+	const thrownThisRoundRef = useRef({});
 	const legOpenerIndexRef = useRef(0);
 	const dartLogRef = useRef([]);
 	const matchEndedRef = useRef(false);
@@ -80,21 +72,21 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 	const currentPlayerIndexRef = useRef(0);
 	currentPlayerIndexRef.current = currentPlayerIndex;
 
-	const [p1, d1] = useReducer(bob27Reducer, undefined, initialBob27State);
-	const [p2, d2] = useReducer(bob27Reducer, undefined, initialBob27State);
-	const [p3, d3] = useReducer(bob27Reducer, undefined, initialBob27State);
-	const [p4, d4] = useReducer(bob27Reducer, undefined, initialBob27State);
-	const [p5, d5] = useReducer(bob27Reducer, undefined, initialBob27State);
-	const [p6, d6] = useReducer(bob27Reducer, undefined, initialBob27State);
-	const [p7, d7] = useReducer(bob27Reducer, undefined, initialBob27State);
-	const [p8, d8] = useReducer(bob27Reducer, undefined, initialBob27State);
+	const [p1, d1] = useReducer(cricket56Reducer, undefined, initialCricket56State);
+	const [p2, d2] = useReducer(cricket56Reducer, undefined, initialCricket56State);
+	const [p3, d3] = useReducer(cricket56Reducer, undefined, initialCricket56State);
+	const [p4, d4] = useReducer(cricket56Reducer, undefined, initialCricket56State);
+	const [p5, d5] = useReducer(cricket56Reducer, undefined, initialCricket56State);
+	const [p6, d6] = useReducer(cricket56Reducer, undefined, initialCricket56State);
+	const [p7, d7] = useReducer(cricket56Reducer, undefined, initialCricket56State);
+	const [p8, d8] = useReducer(cricket56Reducer, undefined, initialCricket56State);
 
 	const allStates = [p1, p2, p3, p4, p5, p6, p7, p8];
 	const allDispatches = [d1, d2, d3, d4, d5, d6, d7, d8];
-	const bob27States = allStates.slice(0, N);
-	const bob27Dispatches = allDispatches.slice(0, N);
-	const bob27StatesRef = useRef(bob27States);
-	bob27StatesRef.current = bob27States;
+	const cricket56States = allStates.slice(0, N);
+	const cricket56Dispatches = allDispatches.slice(0, N);
+	const cricket56StatesRef = useRef(cricket56States);
+	cricket56StatesRef.current = cricket56States;
 
 	const { finishedModalProps, showFinished } = useGameFinishedModal({
 		navigation,
@@ -109,13 +101,15 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 	const onFinishedQuickGameId = useCallback(() => {
 		if (matchEndedRef.current) return;
 		matchEndedRef.current = true;
-		const winnerIdx = bob27StatesRef.current.reduce(
+		const winnerIdx = cricket56StatesRef.current.reduce(
 			(best, s, i, arr) =>
 				(s?.legsWon ?? 0) > (arr[best]?.legsWon ?? 0) ? i : best,
 			0,
 		);
-		const name = players[winnerIdx]?.name ?? 'Zwycięzca';
-		showFinished({ winnerName: name, kind: 'quick' });
+		showFinished({
+			winnerName: players[winnerIdx]?.name ?? 'Zwycięzca',
+			kind: 'quick',
+		});
 	}, [players, showFinished]);
 
 	const {
@@ -123,15 +117,13 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 		canInputFromServer,
 		submitVisit,
 		submitUndo,
-	} = useBob27FfaScoring({
+	} = useCricket56FfaScoring({
 		enabled: syncEnabled && !!transport,
 		transport,
 		N,
-		bob27Dispatches,
+		cricket56Dispatches,
 		setCurrentPlayerIndex,
-		setDartsInVisit,
-		setHitsInVisit,
-		setCurrentTargetIndex,
+		setCurrentRoundIndex,
 		setGameClosed,
 		legOpenerIndexRef,
 		onFinishedQuickGameId,
@@ -160,57 +152,49 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 
 	useEffect(() => {
 		if (isFocused) {
-			activateKeepAwakeAsync('bob27-scoring').catch(() => {});
+			activateKeepAwakeAsync('cricket56-scoring').catch(() => {});
 		} else {
-			deactivateKeepAwake('bob27-scoring');
+			deactivateKeepAwake('cricket56-scoring');
 		}
-		return () => deactivateKeepAwake('bob27-scoring');
+		return () => deactivateKeepAwake('cricket56-scoring');
 	}, [isFocused]);
 
 	const nextActiveIndex = useCallback(
-		(fromIndex, states) => {
-			for (let step = 1; step <= N; step += 1) {
-				const candidate = (fromIndex + step) % N;
-				if (!states[candidate]?.eliminated) return candidate;
-			}
-			return fromIndex;
-		},
+		(fromIndex) => (fromIndex + 1) % N,
 		[N],
 	);
 
 	const resetBoardsLocal = useCallback(() => {
 		for (let i = 0; i < N; i += 1) {
-			bob27Dispatches[i]({ type: BOB27_LEG_RESET });
+			cricket56Dispatches[i]({ type: CRICKET56_LEG_RESET });
 		}
-		thrownThisTargetRef.current = {};
-		setCurrentTargetIndex(0);
-		setDartsInVisit(0);
-		setHitsInVisit(0);
-	}, [N, bob27Dispatches]);
+		thrownThisRoundRef.current = {};
+		setCurrentRoundIndex(0);
+	}, [N, cricket56Dispatches]);
 
 	const finishMatchLocal = useCallback(
-		(winnerIndex, winnerLegsWon, lost = false) => {
+		(winnerIndex, winnerLegsWon) => {
 			if (matchEndedRef.current) return;
 			matchEndedRef.current = true;
 			setGameClosed(true);
 			const name = players[winnerIndex]?.name ?? 'Zwycięzca';
 			if (mode === GAME_MODE.TRAINING) {
-				const states = bob27StatesRef.current.map((s, i) => ({
+				const states = cricket56StatesRef.current.map((s, i) => ({
 					...s,
 					legsWon:
-						i === winnerIndex && !lost
+						i === winnerIndex
 							? (winnerLegsWon ?? (s?.legsWon ?? 0) + 1)
 							: (s?.legsWon ?? 0),
 				}));
 				void saveCompletedTrainingGame({
 					players,
 					matchFormat,
-					gameType: 'bob27',
-					bob27States: states,
+					gameType: 'cricket56',
+					cricket56States: states,
 				});
-				showFinished({ winnerName: name, kind: 'training', lost });
+				showFinished({ winnerName: name, kind: 'training' });
 			} else {
-				showFinished({ winnerName: name, kind: 'quick', lost });
+				showFinished({ winnerName: name, kind: 'quick' });
 			}
 		},
 		[mode, players, matchFormat, showFinished],
@@ -218,15 +202,14 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 
 	const closeLegLocal = useCallback(
 		(winnerIndex) => {
-			bob27Dispatches[winnerIndex]({ type: BOB27_LEG_WIN });
-			const nextLegs = (bob27StatesRef.current[winnerIndex]?.legsWon ?? 0) + 1;
+			cricket56Dispatches[winnerIndex]({ type: CRICKET56_LEG_WIN });
+			const nextLegs = (cricket56StatesRef.current[winnerIndex]?.legsWon ?? 0) + 1;
 			if (nextLegs >= legsToWin) {
 				resetBoardsLocal();
 				dartLogRef.current = [];
 				finishMatchLocal(winnerIndex, nextLegs);
 				return;
 			}
-
 			resetBoardsLocal();
 			dartLogRef.current = [];
 			const nextOpener = computeNextLegOpener(legOpenerIndexRef.current, N);
@@ -238,63 +221,43 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 				[{ text: 'OK' }],
 			);
 		},
-		[N, bob27Dispatches, finishMatchLocal, legsToWin, players, resetBoardsLocal],
+		[N, cricket56Dispatches, finishMatchLocal, legsToWin, players, resetBoardsLocal],
 	);
 
 	const advanceAfterVisitLocal = useCallback(
 		(statesAfter, playerIndex) => {
-			const thrown = { ...thrownThisTargetRef.current, [playerIndex]: true };
-			thrownThisTargetRef.current = thrown;
-			const outcome = resolveBob27AfterCompletedVisit(
+			const thrown = { ...thrownThisRoundRef.current, [playerIndex]: true };
+			thrownThisRoundRef.current = thrown;
+			const outcome = resolveCricket56AfterCompletedVisit(
 				statesAfter,
-				bob27Mode,
-				currentTargetIndex,
+				currentRoundIndex,
 				thrown,
-				[],
-				includeBull,
 			);
 
-			if (outcome.kind === BOB27_KIND_WIN) {
+			if (outcome.kind === CRICKET56_KIND_WIN) {
 				closeLegLocal(outcome.winnerIndex);
 				return;
 			}
-			if (outcome.kind === BOB27_KIND_BUST) {
-				resetBoardsLocal();
-				dartLogRef.current = [];
-				finishMatchLocal(playerIndex, 0, true);
-				return;
-			}
-			if (outcome.kind === BOB27_KIND_TIE_RESET) {
+			if (outcome.kind === CRICKET56_KIND_TIE_RESET) {
 				resetBoardsLocal();
 				setCurrentPlayerIndex(legOpenerIndexRef.current);
-				Alert.alert('Remis', 'Ten sam wynik po ostatnim celu — runda od nowa.', [
+				Alert.alert('Remis', 'Ten sam wynik po 7 rundach — runda od nowa.', [
 					{ text: 'OK' },
 				]);
 				return;
 			}
 
 			if (
-				bob27AllActiveHaveThrown(statesAfter, thrown)
-				&& currentTargetIndex < lastTargetIndex
+				cricket56AllActiveHaveThrown(statesAfter, thrown)
+				&& currentRoundIndex < CRICKET56_LAST_ROUND_INDEX
 			) {
-				setCurrentTargetIndex((idx) => idx + 1);
-				thrownThisTargetRef.current = {};
+				setCurrentRoundIndex((idx) => idx + 1);
+				thrownThisRoundRef.current = {};
 			}
 
-			setDartsInVisit(0);
-			setHitsInVisit(0);
-			setCurrentPlayerIndex((idx) => nextActiveIndex(idx, statesAfter));
+			setCurrentPlayerIndex((idx) => nextActiveIndex(idx));
 		},
-		[
-			bob27Mode,
-			closeLegLocal,
-			currentTargetIndex,
-			finishMatchLocal,
-			includeBull,
-			lastTargetIndex,
-			nextActiveIndex,
-			resetBoardsLocal,
-		],
+		[closeLegLocal, currentRoundIndex, nextActiveIndex, resetBoardsLocal],
 	);
 
 	const isSpectator =
@@ -305,18 +268,16 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 		!isModalVisible &&
 		!busy &&
 		!isSpectator &&
-		!(bob27States[currentPlayerIndex]?.eliminated) &&
 		(!syncEnabled || canInputFromServer) &&
 		(!syncEnabled
 			|| lobbyScoringMode !== 'each_own'
 			|| myPlayerIndex === null
 			|| myPlayerIndex === currentPlayerIndex);
 
-	const handleVisit = (hits) => {
+	const handleVisit = (points) => {
 		if (!canInput) return;
-		const parsed = Number(hits);
+		const parsed = Number(points);
 		if (!Number.isInteger(parsed)) return;
-		const n = Math.max(0, Math.min(3, parsed));
 		if (syncEnabled && transport) {
 			if (!transport.assertCanInput?.(currentPlayerIndex)) return;
 			const playerId = players[currentPlayerIndex]?.playerId;
@@ -324,32 +285,27 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 				Alert.alert('Błąd', 'Brak playerId gracza.');
 				return;
 			}
-			submitVisit(playerId, n);
+			submitVisit(playerId, parsed);
 			return;
 		}
 
 		const idx = currentPlayerIndex;
-		const states = bob27StatesRef.current;
+		const states = cricket56StatesRef.current;
 		dartLogRef.current.push({
 			playerIndex: idx,
-			hits: n,
+			points: parsed,
 			scoreBefore: states[idx].score,
-			eliminatedBefore: states[idx].eliminated,
-			dartsInVisitBefore: dartsInVisit,
-			hitsInVisitBefore: hitsInVisit,
-			targetIndexBefore: currentTargetIndex,
-			thrownBefore: { ...thrownThisTargetRef.current },
+			roundIndexBefore: currentRoundIndex,
+			thrownBefore: { ...thrownThisRoundRef.current },
 		});
 
-		const scoreAfter = applyBob27Visit(states[idx].score, n, currentTargetIndex, includeBull);
-		const eliminated = shouldEliminateBob27(scoreAfter, bob27Mode);
-		bob27Dispatches[idx]({
-			type: BOB27_APPLY,
+		const scoreAfter = applyCricket56Visit(states[idx].score, parsed, currentRoundIndex);
+		cricket56Dispatches[idx]({
+			type: CRICKET56_APPLY,
 			score: scoreAfter,
-			eliminated,
 		});
 		const statesAfter = states.map((s, i) =>
-			i === idx ? { ...s, score: scoreAfter, eliminated } : s,
+			i === idx ? { ...s, score: scoreAfter } : s,
 		);
 		advanceAfterVisitLocal(statesAfter, idx);
 	};
@@ -365,14 +321,11 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 		if (log.length === 0) return;
 		const last = log.pop();
 		setCurrentPlayerIndex(last.playerIndex);
-		setDartsInVisit(last.dartsInVisitBefore);
-		setHitsInVisit(last.hitsInVisitBefore);
-		setCurrentTargetIndex(last.targetIndexBefore);
-		thrownThisTargetRef.current = last.thrownBefore ?? {};
-		bob27Dispatches[last.playerIndex]({
-			type: BOB27_RESTORE,
+		setCurrentRoundIndex(last.roundIndexBefore);
+		thrownThisRoundRef.current = last.thrownBefore ?? {};
+		cricket56Dispatches[last.playerIndex]({
+			type: CRICKET56_RESTORE,
 			score: last.scoreBefore,
-			eliminated: last.eliminatedBefore,
 		});
 	};
 
@@ -404,7 +357,7 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 
 			<View style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
 				<Text style={{ color: colors.textDim, textAlign: 'center', fontSize: 13 }}>
-					Bob's 27 · {bob27Mode} · {includeBull ? 'z bullem' : 'bez bulla'} · do {legsToWin} {legsToWin === 1 ? 'lega' : 'legów'}
+					Cricket 60 · do {legsToWin} {legsToWin === 1 ? 'lega' : 'legów'}
 					{syncEnabled
 						? ` · ${lobbyScoringMode === 'each_own' ? 'online' : '1 urządzenie'}`
 						: ''}
@@ -420,16 +373,14 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 				</View>
 			)}
 
-			<Bob27Counter
+			<Cricket56Counter
 				players={players}
-				bob27States={bob27States}
+				cricket56States={cricket56States}
 				currentPlayerIndex={currentPlayerIndex}
-				currentTargetIndex={currentTargetIndex}
+				currentRoundIndex={currentRoundIndex}
 				onVisit={handleVisit}
 				onUndo={handleUndo}
 				gameClosed={gameClosed || isSpectator || (syncEnabled && !canInput)}
-				mode={bob27Mode}
-				includeBull={includeBull}
 			/>
 		</View>
 	);

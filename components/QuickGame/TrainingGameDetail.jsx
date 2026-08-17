@@ -169,7 +169,10 @@ const TrainingGameDetail = ({ route }) => {
 
 	const isCricket = game.gameType === 'cricket';
 	const isBob27 = game.gameType === 'bob27';
-	const hideX01Stats = isCricket || isBob27;
+	const isAtc = game.gameType === 'atc';
+	const isCatch40 = game.gameType === 'catch40';
+	const isCricket56 = game.gameType === 'cricket56';
+	const hideX01Stats = isCricket || isBob27 || isAtc || isCatch40 || isCricket56;
 
 	return (
 		<ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
@@ -184,6 +187,12 @@ const TrainingGameDetail = ({ route }) => {
 				<Text style={styles.format}>Cricket</Text>
 			) : isBob27 ? (
 				<Text style={styles.format}>Bob's 27</Text>
+			) : isAtc ? (
+				<Text style={styles.format}>Around the Clock</Text>
+			) : isCatch40 ? (
+				<Text style={styles.format}>Catch 40</Text>
+			) : isCricket56 ? (
+				<Text style={styles.format}>Cricket 60</Text>
 			) : null}
 
 			{(game.players ?? []).map((p) => (

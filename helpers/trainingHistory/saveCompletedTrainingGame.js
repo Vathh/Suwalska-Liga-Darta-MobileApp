@@ -12,6 +12,9 @@ export async function saveCompletedTrainingGame({
 	gameType = 'x01',
 	cricketStates = null,
 	bob27States = null,
+	atcStates = null,
+	catch40States = null,
+	cricket56States = null,
 }) {
 	const game = buildTrainingGameRecord({
 		players,
@@ -20,6 +23,9 @@ export async function saveCompletedTrainingGame({
 		gameType,
 		cricketStates,
 		bob27States,
+		atcStates,
+		catch40States,
+		cricket56States,
 	});
 	await saveTrainingGame(game);
 	await applyTrainingGameToTempPlayerStats(game);

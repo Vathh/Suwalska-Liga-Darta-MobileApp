@@ -2,18 +2,24 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
 	DEFAULT_MATCH_FORMAT,
-	GAME_TYPE_BOB27,
-	GAME_TYPE_CRICKET,
+	GAME_TYPE_OPTIONS,
 	GAME_TYPE_X01,
 	BOB27_MODE_EASY,
 	BOB27_MODE_HARD,
+	BOB27_BULL_WITH,
+	BOB27_BULL_WITHOUT,
 	STARTING_SCORE_OPTIONS,
 	formatMatchLabel,
+	hidesX01MatchFields,
+	isAtcFormat,
 	isBob27Format,
+	isCatch40Format,
+	isCricket56Format,
 	isCricketFormat,
 	normalizeMatchFormat,
 } from '../../helpers/matchFormat/matchFormat';
 import { colors } from '../../theme/colors';
+import SelectMenu from '../Core/SelectMenu';
 
 const LEGS_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 const SETS_OPTIONS = [1, 2, 3];
@@ -54,72 +60,38 @@ export default function MatchFormatPicker({
 	value,
 	onChange,
 	disabled = false,
-	allowCricket = true,
+	showGameTypeSelect = true,
 }) {
 	const format = normalizeMatchFormat(value);
 	const cricket = isCricketFormat(format);
 	const bob27 = isBob27Format(format);
-	const hideX01Fields = cricket || bob27;
+	const atc = isAtcFormat(format);
+	const catch40 = isCatch40Format(format);
+	const cricket56 = isCricket56Format(format);
+	const hideX01Fields = hidesX01MatchFields(format);
 
 	const setField = (patch) => onChange(normalizeMatchFormat({ ...format, ...patch }));
+
+	const setGameType = (gameType) => {
+		setField({
+			gameType,
+			setsToWinMatch: gameType === GAME_TYPE_X01 ? format.setsToWinMatch : 1,
+		});
+	};
 
 	return (
 		<View style={styles.wrap}>
 			<Text style={styles.sectionLabel}>Format gry</Text>
 			<Text style={styles.preview}>{formatMatchLabel(format)}</Text>
 
-			{allowCricket && (
-				<View style={styles.typeRow}>
-					<Pressable
-						style={[
-							styles.typeBtn,
-							!cricket && !bob27 && styles.typeBtnActive,
-							disabled && styles.countBtnDisabled,
-						]}
-						disabled={disabled}
-						onPress={() => setField({ gameType: GAME_TYPE_X01 })}
-					>
-						<Text style={[styles.typeBtnText, !cricket && !bob27 && styles.typeBtnTextActive]}>
-							501 / X01
-						</Text>
-					</Pressable>
-					<Pressable
-						style={[
-							styles.typeBtn,
-							cricket && styles.typeBtnActive,
-							disabled && styles.countBtnDisabled,
-						]}
-						disabled={disabled}
-						onPress={() =>
-							setField({
-								gameType: GAME_TYPE_CRICKET,
-								setsToWinMatch: 1,
-							})
-						}
-					>
-						<Text style={[styles.typeBtnText, cricket && styles.typeBtnTextActive]}>
-							Cricket
-						</Text>
-					</Pressable>
-					<Pressable
-						style={[
-							styles.typeBtn,
-							bob27 && styles.typeBtnActive,
-							disabled && styles.countBtnDisabled,
-						]}
-						disabled={disabled}
-						onPress={() =>
-							setField({
-								gameType: GAME_TYPE_BOB27,
-								setsToWinMatch: 1,
-							})
-						}
-					>
-						<Text style={[styles.typeBtnText, bob27 && styles.typeBtnTextActive]}>
-							Bob's 27
-						</Text>
-					</Pressable>
-				</View>
+			{showGameTypeSelect && (
+				<SelectMenu
+					label="Tryb gry"
+					value={format.gameType}
+					options={GAME_TYPE_OPTIONS}
+					onChange={setGameType}
+					disabled={disabled}
+				/>
 			)}
 
 			{bob27 && (
@@ -167,6 +139,73 @@ export default function MatchFormatPicker({
 					{format.bob27Mode === BOB27_MODE_EASY
 						? 'Easy: gra trwa przy ujemnym wyniku.'
 						: 'Hard: wynik ≤ 0 kończy grę (wypadasz).'}
+				</Text>
+			) : null}
+			{bob27 && (
+				<View style={styles.typeRow}>
+					<Pressable
+						style={[
+							styles.typeBtn,
+							format.bob27Bull === BOB27_BULL_WITH && styles.typeBtnActive,
+							disabled && styles.countBtnDisabled,
+						]}
+						disabled={disabled}
+						onPress={() => setField({ bob27Bull: BOB27_BULL_WITH })}
+					>
+						<Text
+							style={[
+								styles.typeBtnText,
+								format.bob27Bull === BOB27_BULL_WITH && styles.typeBtnTextActive,
+							]}
+						>
+							Z bullem
+						</Text>
+					</Pressable>
+					<Pressable
+						style={[
+							styles.typeBtn,
+							format.bob27Bull === BOB27_BULL_WITHOUT && styles.typeBtnActive,
+							disabled && styles.countBtnDisabled,
+						]}
+						disabled={disabled}
+						onPress={() => setField({ bob27Bull: BOB27_BULL_WITHOUT })}
+					>
+						<Text
+							style={[
+								styles.typeBtnText,
+								format.bob27Bull === BOB27_BULL_WITHOUT && styles.typeBtnTextActive,
+							]}
+						>
+							Bez bulla
+						</Text>
+					</Pressable>
+				</View>
+			)}
+			{bob27 ? (
+				<Text style={styles.modeHint}>
+					{format.bob27Bull === BOB27_BULL_WITHOUT
+						? 'Bez bulla: ostatni cel to D20.'
+						: 'Z bullem: po D20 inner bull (50). Outer nie liczy się.'}
+				</Text>
+			) : null}
+			{cricket ? (
+				<Text style={styles.modeHint}>
+					Standard scoring, tylko legi (bez setów).
+				</Text>
+			) : null}
+			{atc ? (
+				<Text style={styles.modeHint}>
+					1 → 20 → bull. Dowolny segment, bez przeskoków.
+				</Text>
+			) : null}
+			{catch40 ? (
+				<Text style={styles.modeHint}>
+					Checkouty 61–100, max 6 lotek. 2 lotki = 3 pkt, 3 = 2, 4–6 = 1. 99 w 3 lotki = 3. Double out.
+				</Text>
+			) : null}
+			{cricket56 ? (
+				<Text style={styles.modeHint}>
+					7 rund: 15–20 i bull. S=1, D=2, T=3; bull outer=1, inner=2. Perfect 60.
 				</Text>
 			) : null}
 

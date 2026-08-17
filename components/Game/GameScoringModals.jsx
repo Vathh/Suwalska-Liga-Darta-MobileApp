@@ -17,6 +17,8 @@ export default function GameScoringModals({
 	checkoutModalPlayer,
 	isCheckoutModalVisible,
 	onCheckoutDart,
+	checkoutDartOptions = [1, 2, 3],
+	checkoutPrompt = null,
 	scoringBusy,
 	scoringBusyLabel,
 }) {
@@ -50,12 +52,13 @@ export default function GameScoringModals({
 				<Modal visible={isCheckoutModalVisible}>
 					<View style={styles.modalContainer}>
 						<Text style={styles.modalText}>
-							Którą lotką {checkoutModalPlayer.name} skończył lega?
+							{checkoutPrompt
+								?? `Którą lotką ${checkoutModalPlayer.name} skończył lega?`}
 						</Text>
 						<View
 							style={[styles.modalBtnsContainer, styles.qfModalBtnsContainer]}
 						>
-							{[1, 2, 3].map((dartNumber) => (
+							{checkoutDartOptions.map((dartNumber) => (
 								<Pressable
 									key={dartNumber}
 									style={[styles.modalBtn, styles.qfModalBtn]}

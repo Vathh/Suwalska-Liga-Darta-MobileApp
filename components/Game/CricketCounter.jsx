@@ -51,7 +51,7 @@ const CricketCounter = ({
     onCricketUndo?.();
   };
 
-  if (N < 2) return null;
+  if (N < 1) return null;
 
   return (
     <View style={styles.container}>

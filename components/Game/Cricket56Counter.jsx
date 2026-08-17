@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { bob27TargetLabel, bob27TargetValue } from '../../helpers/bob27';
+import {
+	cricket56IsBull,
+	cricket56MaxMarkForRound,
+	cricket56TargetLabel,
+} from '../../helpers/cricket56';
 import { colors } from '../../theme/colors';
 
 function rowHeightForPlayerCount(n) {
@@ -10,41 +14,84 @@ function rowHeightForPlayerCount(n) {
 	return 34;
 }
 
-const HIT_OPTIONS = [0, 1, 2, 3];
+const MARK_OPTIONS = [
+	{ value: 0, label: '0' },
+	{ value: 1, label: 'S' },
+	{ value: 2, label: 'D' },
+	{ value: 3, label: 'T' },
+];
 
-export default function Bob27Counter({
+function markLabel(value) {
+	if (value === 1) return 'S';
+	if (value === 2) return 'D';
+	if (value === 3) return 'T';
+	return '0';
+}
+
+export default function Cricket56Counter({
 	players,
-	bob27States,
+	cricket56States,
 	currentPlayerIndex,
-	currentTargetIndex = 0,
+	currentRoundIndex = 0,
 	onVisit,
 	onUndo,
 	gameClosed = false,
-	mode = 'hard',
-	includeBull = true,
 }) {
 	const N = players?.length ?? 0;
-	if (N < 1) return null;
+	const [visitMarks, setVisitMarks] = useState([]);
 	const rowHeight = rowHeightForPlayerCount(N);
-	const targetLabel = bob27TargetLabel(currentTargetIndex, includeBull);
-	const targetValue = bob27TargetValue(currentTargetIndex, includeBull);
+	const targetLabel = cricket56TargetLabel(currentRoundIndex);
+	const maxMark = cricket56MaxMarkForRound(currentRoundIndex);
+	const isBull = cricket56IsBull(currentRoundIndex);
+	const dartNumber = visitMarks.length + 1;
+	const visitTotal = visitMarks.reduce((sum, m) => sum + m, 0);
+
+	useEffect(() => {
+		setVisitMarks([]);
+	}, [currentPlayerIndex, currentRoundIndex]);
+
+	if (N < 1) return null;
+
+	const handleMark = (mark) => {
+		if (gameClosed) return;
+		const safe = Math.max(0, Math.min(maxMark, mark));
+		const next = [...visitMarks, safe];
+		if (next.length >= 3) {
+			setVisitMarks([]);
+			onVisit?.(next.reduce((sum, m) => sum + m, 0));
+			return;
+		}
+		setVisitMarks(next);
+	};
+
+	const handleUndo = () => {
+		if (gameClosed) return;
+		if (visitMarks.length > 0) {
+			setVisitMarks((prev) => prev.slice(0, -1));
+			return;
+		}
+		onUndo?.();
+	};
 
 	return (
 		<View style={styles.container}>
 			<View style={styles.targetCard}>
-				<Text style={styles.targetKicker}>Cel</Text>
+				<Text style={styles.targetKicker}>
+					Runda {currentRoundIndex + 1}/7
+				</Text>
 				<Text style={styles.targetLabel}>{targetLabel}</Text>
 				<Text style={styles.targetMeta}>
-					trafienie +{targetValue} · 3 pudła −{targetValue}
-					{mode === 'easy' ? ' · easy' : ' · hard'}
-					{includeBull ? ' · z bullem' : ' · bez bulla'}
+					{isBull
+						? 'outer = 1 · inner = 2 · max 6 pkt'
+						: 'S = 1 · D = 2 · T = 3 · max 9 pkt'}
+					{' · perfect 60'}
 				</Text>
 			</View>
 
 			<View style={styles.tableWrapper}>
 				<ScrollView contentContainerStyle={styles.tableContent}>
 					{players.slice(0, N).map((p, i) => {
-						const st = bob27States[i] ?? {};
+						const st = cricket56States[i] ?? {};
 						const active = i === currentPlayerIndex && !gameClosed;
 						return (
 							<View
@@ -53,15 +100,14 @@ export default function Bob27Counter({
 									styles.playerRow,
 									{ minHeight: rowHeight },
 									active && styles.playerRowActive,
-									st.eliminated && styles.playerRowOut,
 								]}
 							>
 								<Text style={styles.playerName} numberOfLines={1}>
 									{p?.name ?? 'Gracz'}
 									<Text style={styles.legsInline}> ({st.legsWon ?? 0})</Text>
 								</Text>
-								<Text style={[styles.playerScore, st.eliminated && styles.playerOut]}>
-									{st.eliminated ? 'OUT' : (st.score ?? 27)}
+								<Text style={[styles.playerScore, active && styles.activeScore]}>
+									{st.score ?? 0}
 								</Text>
 							</View>
 						);
@@ -71,35 +117,43 @@ export default function Bob27Counter({
 
 			<View style={styles.bottomSection}>
 				<View style={styles.scoreSection}>
-					<Text style={styles.prompt}>Ile lotek w celu?</Text>
-					<Pressable style={styles.undoBtn} onPress={onUndo} disabled={gameClosed}>
+					<Text style={styles.prompt}>
+						Lotka {Math.min(dartNumber, 3)}/3
+						{visitMarks.length > 0
+							? ` · ${visitMarks.map(markLabel).join(' · ')} = ${visitTotal}`
+							: ''}
+					</Text>
+					<Pressable style={styles.undoBtn} onPress={handleUndo} disabled={gameClosed}>
 						<Text style={styles.undoText}>Cofnij</Text>
 					</Pressable>
 				</View>
 				<View style={styles.actionRow}>
-					{HIT_OPTIONS.map((hits) => (
-						<Pressable
-							key={hits}
-							style={[
-								styles.hitBtn,
-								hits === 0 && styles.hitBtnZero,
-								hits === 3 && styles.hitBtnThree,
-								gameClosed && styles.btnDisabled,
-							]}
-							onPress={() => onVisit?.(hits)}
-							disabled={gameClosed}
-						>
-							<Text
+					{MARK_OPTIONS.map((opt) => {
+						const disabled = gameClosed || opt.value > maxMark;
+						return (
+							<Pressable
+								key={opt.value}
 								style={[
-									styles.hitBtnText,
-									hits === 0 && styles.hitBtnTextZero,
-									hits === 3 && styles.hitBtnTextThree,
+									styles.hitBtn,
+									opt.value === 0 && styles.hitBtnZero,
+									opt.value === 3 && styles.hitBtnThree,
+									disabled && styles.btnDisabled,
 								]}
+								onPress={() => handleMark(opt.value)}
+								disabled={disabled}
 							>
-								{hits}
-							</Text>
-						</Pressable>
-					))}
+								<Text
+									style={[
+										styles.hitBtnText,
+										opt.value === 0 && styles.hitBtnTextZero,
+										opt.value === 3 && styles.hitBtnTextThree,
+									]}
+								>
+									{opt.label}
+								</Text>
+							</Pressable>
+						);
+					})}
 				</View>
 			</View>
 		</View>
@@ -165,9 +219,6 @@ const styles = StyleSheet.create({
 	playerRowActive: {
 		backgroundColor: colors.accentSoft,
 	},
-	playerRowOut: {
-		opacity: 0.55,
-	},
 	playerName: {
 		flex: 1,
 		color: colors.textSecondary,
@@ -185,9 +236,8 @@ const styles = StyleSheet.create({
 		minWidth: 64,
 		textAlign: 'right',
 	},
-	playerOut: {
-		color: colors.dangerAlt,
-		fontSize: 16,
+	activeScore: {
+		color: colors.accent,
 	},
 	bottomSection: {
 		paddingBottom: 16,

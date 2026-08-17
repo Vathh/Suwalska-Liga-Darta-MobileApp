@@ -137,12 +137,18 @@ export function buildTrainingGameRecord({
 	gameType = 'x01',
 	cricketStates = null,
 	bob27States = null,
+	atcStates = null,
+	catch40States = null,
+	cricket56States = null,
 }) {
 	const playedAt = new Date().toISOString();
 	const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 	const isCricket = gameType === 'cricket';
 	const isBob27 = gameType === 'bob27';
-	const hideX01Stats = isCricket || isBob27;
+	const isAtc = gameType === 'atc';
+	const isCatch40 = gameType === 'catch40';
+	const isCricket56 = gameType === 'cricket56';
+	const hideX01Stats = isCricket || isBob27 || isAtc || isCatch40 || isCricket56;
 
 	const playerRecords = (players ?? []).map((p, i) => {
 		const name = (p?.name ?? `Gracz ${i + 1}`).trim() || `Gracz ${i + 1}`;
@@ -152,6 +158,48 @@ export function buildTrainingGameRecord({
 				name,
 				legsWon,
 				setsWon: 0,
+				matchAverage: null,
+				bestLegAverage: null,
+				bestLegDarts: null,
+				totalPointsEarned: 0,
+				totalDartsThrown: 0,
+				checkoutDarts: [],
+				checkoutDartCounts: { 1: 0, 2: 0, 3: 0 },
+				plus60: 0,
+				plus80: 0,
+				plus100: 0,
+				plus140: 0,
+				max180: 0,
+			};
+		}
+		if (isAtc) {
+			const legsWon = atcStates?.[i]?.legsWon ?? 0;
+			return {
+				name,
+				legsWon,
+				setsWon: 0,
+				targetIndex: atcStates?.[i]?.targetIndex ?? null,
+				matchAverage: null,
+				bestLegAverage: null,
+				bestLegDarts: null,
+				totalPointsEarned: 0,
+				totalDartsThrown: 0,
+				checkoutDarts: [],
+				checkoutDartCounts: { 1: 0, 2: 0, 3: 0 },
+				plus60: 0,
+				plus80: 0,
+				plus100: 0,
+				plus140: 0,
+				max180: 0,
+			};
+		}
+		if (isCatch40) {
+			const legsWon = catch40States?.[i]?.legsWon ?? 0;
+			return {
+				name,
+				legsWon,
+				setsWon: 0,
+				catch40Score: catch40States?.[i]?.catch40Score ?? null,
 				matchAverage: null,
 				bestLegAverage: null,
 				bestLegDarts: null,
@@ -187,6 +235,27 @@ export function buildTrainingGameRecord({
 				max180: 0,
 			};
 		}
+		if (isCricket56) {
+			const legsWon = cricket56States?.[i]?.legsWon ?? 0;
+			return {
+				name,
+				legsWon,
+				setsWon: 0,
+				score: cricket56States?.[i]?.score ?? null,
+				matchAverage: null,
+				bestLegAverage: null,
+				bestLegDarts: null,
+				totalPointsEarned: 0,
+				totalDartsThrown: 0,
+				checkoutDarts: [],
+				checkoutDartCounts: { 1: 0, 2: 0, 3: 0 },
+				plus60: 0,
+				plus80: 0,
+				plus100: 0,
+				plus140: 0,
+				max180: 0,
+			};
+		}
 		return {
 			name,
 			...computeX01PlayerMatchStats(playerStates?.[i]),
@@ -194,7 +263,7 @@ export function buildTrainingGameRecord({
 	});
 
 	let winnerName = null;
-	if (isCricket || isBob27) {
+	if (isCricket || isBob27 || isAtc || isCatch40 || isCricket56) {
 		let maxLegs = -1;
 		for (const pr of playerRecords) {
 			if ((pr.legsWon ?? 0) > maxLegs) {
@@ -217,7 +286,7 @@ export function buildTrainingGameRecord({
 	return {
 		id,
 		playedAt,
-		gameType: isCricket ? 'cricket' : isBob27 ? 'bob27' : 'x01',
+		gameType: isCricket ? 'cricket' : isBob27 ? 'bob27' : isAtc ? 'atc' : isCatch40 ? 'catch40' : isCricket56 ? 'cricket56' : 'x01',
 		matchFormat: matchFormat ?? null,
 		winnerName,
 		players: playerRecords,

@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
-import { BOB27_APPLY } from '../helpers/bob27';
+import { ATC_APPLY } from '../helpers/atc';
 import { useGameScoringRealtime } from './useGameScoringRealtime';
 
 const BACKUP_POLL_MS = 2500;
 
 /**
- * Sync stanu Bob's 27 FFA (GET + WS + poll). Wzorzec jak useCricketFfaScoring.
+ * Sync stanu Around the Clock FFA (GET + WS + poll).
  */
-export function useBob27FfaScoring({
+export function useAtcFfaScoring({
 	enabled,
 	transport,
 	N,
-	bob27Dispatches,
+	atcDispatches,
 	setCurrentPlayerIndex,
-	setDartsInVisit,
-	setHitsInVisit,
-	setCurrentTargetIndex,
 	setGameClosed,
 	legOpenerIndexRef,
 	onFinishedQuickGameId,
@@ -29,8 +26,8 @@ export function useBob27FfaScoring({
 	const [busy, setBusy] = useState(false);
 	const [canInputFromServer, setCanInputFromServer] = useState(true);
 
-	const dispatchesRef = useRef(bob27Dispatches);
-	dispatchesRef.current = bob27Dispatches;
+	const dispatchesRef = useRef(atcDispatches);
+	dispatchesRef.current = atcDispatches;
 
 	const applyState = useCallback(
 		(state) => {
@@ -58,24 +55,15 @@ export function useBob27FfaScoring({
 				const p = state.players[i];
 				if (!p || !dispatches[i]) continue;
 				dispatches[i]({
-					type: BOB27_APPLY,
-					score: Number(p.score ?? 27),
-					eliminated: !!p.eliminated,
+					type: ATC_APPLY,
+					targetIndex: Number(p.targetIndex ?? 0),
+					finished: !!p.finished,
 					legsWon: Number(p.legsWon ?? 0),
 				});
 			}
 
 			setCurrentPlayerIndex(Number(state.turn?.currentPlayerIndex
 				?? state.session.currentPlayerIndex
-				?? 0));
-			setDartsInVisit(Number(state.turn?.dartsInVisit
-				?? state.session.dartsInVisit
-				?? 0));
-			setHitsInVisit?.(Number(state.turn?.hitsInVisit
-				?? state.session.hitsInVisit
-				?? 0));
-			setCurrentTargetIndex?.(Number(state.turn?.currentTargetIndex
-				?? state.session.currentTargetIndex
 				?? 0));
 			if (legOpenerIndexRef) {
 				legOpenerIndexRef.current = Number(
@@ -89,10 +77,7 @@ export function useBob27FfaScoring({
 			legOpenerIndexRef,
 			onFinishedQuickGameId,
 			setCurrentPlayerIndex,
-			setCurrentTargetIndex,
-			setDartsInVisit,
 			setGameClosed,
-			setHitsInVisit,
 		],
 	);
 
@@ -102,7 +87,7 @@ export function useBob27FfaScoring({
 			const state = await transport.fetchState();
 			applyState(state);
 		} catch (e) {
-			console.warn('useBob27FfaScoring loadState', e);
+			console.warn('useAtcFfaScoring loadState', e);
 		}
 	}, [applyState, enabled, transport]);
 
@@ -129,7 +114,7 @@ export function useBob27FfaScoring({
 		channelType: realtimeConfig?.channelType ?? 'private',
 		accessToken: realtimeConfig?.accessToken ?? null,
 		events: realtimeConfig?.events,
-		scope: realtimeConfig?.scope ?? 'bob27-ffa',
+		scope: realtimeConfig?.scope ?? 'atc-ffa',
 		unwrapPayload: realtimeConfig?.unwrapPayload,
 		onGameState: applyState,
 		onWsHealthChange: () => {},
@@ -159,7 +144,7 @@ export function useBob27FfaScoring({
 					const state = await transport.recordVisit({
 						playerId,
 						hits,
-						clientDartId: transport.newClientDartId(),
+						clientVisitId: transport.newClientVisitId(),
 					});
 					applyState(state);
 				} catch (e) {
@@ -173,10 +158,10 @@ export function useBob27FfaScoring({
 	);
 
 	const submitUndo = useCallback(() => {
-		if (!transport?.undoDart) return Promise.resolve();
+		if (!transport?.undoVisit) return Promise.resolve();
 		return enqueueWrite(async () => {
 			try {
-				const state = await transport.undoDart();
+				const state = await transport.undoVisit();
 				applyState(state);
 			} catch (e) {
 				Alert.alert('Błąd', e?.message ?? 'Nie udało się cofnąć');
