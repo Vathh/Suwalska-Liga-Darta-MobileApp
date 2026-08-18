@@ -121,7 +121,7 @@ const SeasonDetailScreen = ({ navigation, route }) => {
 	}
 
 	const season = data?.season;
-	const league = data?.league;
+	const organization = data?.organization;
 	const standingsRows = mapStandingRows(standings);
 
 	return (
@@ -146,12 +146,12 @@ const SeasonDetailScreen = ({ navigation, route }) => {
 					<DetailHeader
 						title={season.name}
 						breadcrumb={
-							league
+							organization
 								? [
 										{
-											label: league.name,
+											label: organization.name,
 											onPress: () =>
-												navigation.navigate('LeagueDetail', { id: league.id }),
+												navigation.navigate('OrganizationDetail', { id: organization.id }),
 										},
 										{ label: 'Sezon' },
 									]

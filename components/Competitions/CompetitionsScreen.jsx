@@ -4,10 +4,10 @@ import { colors } from '../../theme/colors';
 
 const SECTIONS = [
 	{
-		key: 'leagues',
-		label: 'Ligi',
-		hint: 'Przeglądaj dostępne ligi',
-		route: 'LeaguesList',
+		key: 'organizations',
+		label: 'Organizacje',
+		hint: 'Przeglądaj dostępne organizacje',
+		route: 'OrganizationsList',
 	},
 	{
 		key: 'seasons',
@@ -23,7 +23,7 @@ const SECTIONS = [
 	},
 ];
 
-/** Hub: Ligi / Sezony / Turnieje (przeglądanie jak na webie). */
+/** Hub: Organizacje / Sezony / Turnieje (przeglądanie jak na webie). */
 const CompetitionsScreen = ({ navigation }) => {
 	return (
 		<View style={styles.container}>

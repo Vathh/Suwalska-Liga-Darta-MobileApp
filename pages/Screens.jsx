@@ -25,10 +25,10 @@ import EditPlayerProfileScreen from '../components/PlayerProfile/EditPlayerProfi
 import AccountScreen from '../components/Account/AccountScreen';
 import ChangePasswordScreen from '../components/Account/ChangePasswordScreen';
 import CompetitionsScreen from '../components/Competitions/CompetitionsScreen';
-import LeaguesListScreen from '../components/Competitions/LeaguesListScreen';
+import OrganizationsListScreen from '../components/Competitions/OrganizationsListScreen';
 import SeasonsListScreen from '../components/Competitions/SeasonsListScreen';
 import TournamentsListScreen from '../components/Competitions/TournamentsListScreen';
-import LeagueDetailScreen from '../components/Competitions/LeagueDetailScreen';
+import OrganizationDetailScreen from '../components/Competitions/OrganizationDetailScreen';
 import SeasonDetailScreen from '../components/Competitions/SeasonDetailScreen';
 import TournamentDetailScreen from '../components/Competitions/TournamentDetailScreen';
 import HeaderTitle from '../components/Common/HeaderTitle';
@@ -77,10 +77,10 @@ function RozgrywkiStack() {
 	return (
 		<Stack.Navigator screenOptions={stackScreenOptions}>
 			<Stack.Screen name="RozgrywkiHome" component={CompetitionsScreen} />
-			<Stack.Screen name="LeaguesList" component={LeaguesListScreen} />
+			<Stack.Screen name="OrganizationsList" component={OrganizationsListScreen} />
 			<Stack.Screen name="SeasonsList" component={SeasonsListScreen} />
 			<Stack.Screen name="TournamentsList" component={TournamentsListScreen} />
-			<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} />
+			<Stack.Screen name="OrganizationDetail" component={OrganizationDetailScreen} />
 			<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} />
 			<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} />
 			<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />

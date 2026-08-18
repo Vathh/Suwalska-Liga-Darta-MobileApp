@@ -343,15 +343,15 @@ export const getTournamentJoinPreviewUrl = (code) =>
 export const getTournamentJoinApplyUrl = (code) =>
 	API_BASE_URL + '/tournaments/join/' + encodeURIComponent(code);
 
-export const getLeaguesUrl = (page = 1) =>
-	API_BASE_URL + '/leagues?page=' + page;
+export const getOrganizationsUrl = (page = 1) =>
+	API_BASE_URL + '/organizations?page=' + page;
 export const getSeasonsUrl = (page = 1) =>
 	API_BASE_URL + '/seasons?page=' + page;
 export const getTournamentsUrl = (page = 1) =>
 	API_BASE_URL + '/tournaments?page=' + page;
 
-export const getLeagueUrl = (leagueId) =>
-	API_BASE_URL + '/leagues/' + leagueId;
+export const getOrganizationUrl = (organizationId) =>
+	API_BASE_URL + '/organizations/' + organizationId;
 export const getSeasonUrl = (seasonId) =>
 	API_BASE_URL + '/seasons/' + seasonId;
 export const getSeasonStandingsUrl = (seasonId, page = 1) =>

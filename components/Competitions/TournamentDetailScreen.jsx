@@ -110,10 +110,10 @@ const TournamentDetailScreen = ({ navigation, route }) => {
 
 	const tournament = data?.tournament;
 	const breadcrumb = [];
-	if (data?.league) {
+	if (data?.organization) {
 		breadcrumb.push({
-			label: data.league.name,
-			onPress: () => navigation.navigate('LeagueDetail', { id: data.league.id }),
+			label: data.organization.name,
+			onPress: () => navigation.navigate('OrganizationDetail', { id: data.organization.id }),
 		});
 	}
 	if (data?.season) {
@@ -132,7 +132,7 @@ const TournamentDetailScreen = ({ navigation, route }) => {
 			RESULTS_COLUMNS_BASE[0],
 			RESULTS_COLUMNS_BASE[1],
 		];
-		if (tournament?.tracksLeaguePoints) {
+		if (tournament?.tracksSeasonPoints) {
 			cols.push({ key: 'points', label: 'Pkt', width: 48 });
 		}
 		if (showStageInResults) {

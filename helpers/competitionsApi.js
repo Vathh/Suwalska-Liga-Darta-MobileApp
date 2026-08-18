@@ -1,7 +1,7 @@
 import { getSeasonStandingsUrl } from './apiConfig';
 
 /**
- * Fetch one page of leagues / seasons / tournaments catalog.
+ * Fetch one page of organizations / seasons / tournaments catalog.
  * @param {(page: number) => string} buildUrl
  * @param {string} accessToken
  * @param {number} [page]
@@ -40,7 +40,7 @@ export async function fetchCompetitionPage(buildUrl, accessToken, page = 1) {
 }
 
 /**
- * Fetch competition detail (league / season / tournament show).
+ * Fetch competition detail (organization / season / tournament show).
  * @param {string} url
  * @param {string} accessToken
  * @returns {Promise<{ data: object|null, error: string|null }>}

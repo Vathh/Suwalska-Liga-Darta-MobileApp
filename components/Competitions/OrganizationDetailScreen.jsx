@@ -11,13 +11,13 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import useAuth from '../../hooks/useAuth';
 import { fetchCompetitionDetail } from '../../helpers/competitionsApi';
-import { getLeagueUrl } from '../../helpers/apiConfig';
+import { getOrganizationUrl } from '../../helpers/apiConfig';
 import DetailHeader from './DetailHeader';
 import { colors } from '../../theme/colors';
 
-const LeagueDetailScreen = ({ navigation, route }) => {
+const OrganizationDetailScreen = ({ navigation, route }) => {
 	const { auth } = useAuth();
-	const leagueId = route.params?.id;
+	const organizationId = route.params?.id;
 	const [data, setData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
@@ -25,14 +25,14 @@ const LeagueDetailScreen = ({ navigation, route }) => {
 
 	const load = useCallback(
 		async ({ soft } = {}) => {
-			if (!auth?.accessToken || !leagueId) {
-				setError('Brak danych ligi.');
+			if (!auth?.accessToken || !organizationId) {
+				setError('Brak danych organizacji.');
 				setLoading(false);
 				return;
 			}
 			if (!soft) setLoading(true);
 
-			const result = await fetchCompetitionDetail(getLeagueUrl(leagueId), auth.accessToken);
+			const result = await fetchCompetitionDetail(getOrganizationUrl(organizationId), auth.accessToken);
 			if (result.error) {
 				setError(result.error);
 				if (!soft) setData(null);
@@ -43,7 +43,7 @@ const LeagueDetailScreen = ({ navigation, route }) => {
 			setLoading(false);
 			setRefreshing(false);
 		},
-		[auth?.accessToken, leagueId],
+		[auth?.accessToken, organizationId],
 	);
 
 	useFocusEffect(
@@ -60,7 +60,7 @@ const LeagueDetailScreen = ({ navigation, route }) => {
 		);
 	}
 
-	const league = data?.league;
+	const organization = data?.organization;
 
 	return (
 		<ScrollView
@@ -79,15 +79,15 @@ const LeagueDetailScreen = ({ navigation, route }) => {
 		>
 			{error ? <Text style={styles.error}>{error}</Text> : null}
 
-			{league ? (
+			{organization ? (
 				<>
 					<DetailHeader
-						title={league.name}
-						eyebrow="Liga"
+						title={organization.name}
+						eyebrow="Organizacja"
 						meta={[
-							{ label: 'Opis', value: league.description?.trim() ? league.description : '—' },
-							{ label: 'Utworzono', value: league.createdAt || '—' },
-							{ label: 'Ostatnia aktywność', value: league.updatedAt || '—' },
+							{ label: 'Opis', value: organization.description?.trim() ? organization.description : '—' },
+							{ label: 'Utworzono', value: organization.createdAt || '—' },
+							{ label: 'Ostatnia aktywność', value: organization.updatedAt || '—' },
 							{ label: 'Sezony', value: String(data?.seasons?.length ?? 0) },
 						]}
 					/>
@@ -142,4 +142,4 @@ const styles = StyleSheet.create({
 	linkCardText: { color: colors.text, fontSize: 15, fontWeight: '600' },
 });
 
-export default LeagueDetailScreen;
+export default OrganizationDetailScreen;

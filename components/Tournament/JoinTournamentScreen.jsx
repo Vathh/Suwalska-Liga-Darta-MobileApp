@@ -208,8 +208,8 @@ export default function JoinTournamentScreen({ route, navigation }) {
 			{preview && !loading && (
 				<View style={styles.card}>
 					<Text style={styles.tournamentName}>{preview.tournamentName}</Text>
-					{preview.leagueName ? (
-						<Text style={styles.league}>{preview.leagueName}</Text>
+					{preview.organizationName ? (
+						<Text style={styles.organization}>{preview.organizationName}</Text>
 					) : null}
 					{preview.reason ? (
 						<Text style={styles.reason}>{preview.reason}</Text>
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
 		fontWeight: '700',
 		marginBottom: 4,
 	},
-	league: {
+	organization: {
 		fontSize: 14,
 		color: colors.textDim,
 		marginBottom: 8,

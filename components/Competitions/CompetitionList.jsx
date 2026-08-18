@@ -15,7 +15,7 @@ import { colors } from '../../theme/colors';
 import { STATUS_STYLES } from './DetailHeader';
 
 /**
- * Wspólna lista katalogu Rozgrywek (ligi / sezony / turnieje).
+ * Wspólna lista katalogu Rozgrywek (organizacji / sezony / turnieje).
  *
  * @param {{
  *   title: string,

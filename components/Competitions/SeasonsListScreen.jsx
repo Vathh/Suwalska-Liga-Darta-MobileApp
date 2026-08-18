@@ -6,7 +6,7 @@ const SeasonsListScreen = ({ navigation }) => (
 	<CompetitionList
 		title="Sezony"
 		emptyTitle="Brak sezonów"
-		emptyDescription="Sezony pojawią się po utworzeniu ich w lidze na webie."
+		emptyDescription="Sezony pojawią się po utworzeniu ich w organizacji na webie."
 		buildUrl={getSeasonsUrl}
 		detailRoute="SeasonDetail"
 		navigation={navigation}
