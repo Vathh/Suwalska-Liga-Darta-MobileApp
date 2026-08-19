@@ -1,6 +1,7 @@
 import { normalizeMatchFormat } from '../matchFormat/matchFormat.js';
 import {
 	getGroupGameScoringBaseUrl,
+	getLeagueGameScoringBaseUrl,
 	getPlayoffGameScoringBaseUrl,
 } from '../apiConfig';
 import { normalizeTournamentPlayers } from '../normalizeTournamentPlayers';
@@ -16,6 +17,7 @@ export const GAME_MODE = {
 	TRAINING: 'training',
 	QUICK_FFA: 'quick_ffa',
 	TOURNAMENT: 'tournament',
+	LEAGUE: 'league',
 };
 
 function mapQuickPlayers(players) {
@@ -57,10 +59,13 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 
 	const isTraining = !!trainingGame;
 	const isQuick = !!quickGame && !isTraining;
-	const isTournament = !!tournamentGame?.id;
+	const isLeague = tournamentGame?.type === 'league';
+	const isTournament = !!tournamentGame?.id && !isLeague;
 
 	let mode = GAME_MODE.TRAINING;
-	if (isTournament) {
+	if (isLeague) {
+		mode = GAME_MODE.LEAGUE;
+	} else if (isTournament) {
 		mode = GAME_MODE.TOURNAMENT;
 	} else if (isQuick) {
 		mode = GAME_MODE.QUICK_FFA;
@@ -70,7 +75,9 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 	const lobbyId = quickGame?.lobbyId ?? null;
 	const lobbyScoringMode = matchConfig?.scoringMode ?? 'each_own';
 	const isHost = matchConfig?.isHost ?? true;
-	const matchFormat = normalizeMatchFormat(matchConfig?.matchFormat);
+	const matchFormat = normalizeMatchFormat(
+		matchConfig?.matchFormat ?? tournamentGame?.matchFormat,
+	);
 
 	const players = isTraining || isQuick
 		? mapQuickPlayers(matchConfig?.players)
@@ -120,13 +127,14 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 	let transport = null;
 	let reloadKey = null;
 
-	if (isTournament && accessToken) {
-		const baseUrl =
-			tournamentGame.type === 'playoff'
+	if ((isTournament || isLeague) && accessToken) {
+		const isPlayoff = tournamentGame.type === 'playoff';
+		const baseUrl = isLeague
+			? getLeagueGameScoringBaseUrl(tournamentGame.id)
+			: isPlayoff
 				? getPlayoffGameScoringBaseUrl(tournamentGame.id)
 				: getGroupGameScoringBaseUrl(tournamentGame.id);
-		const channelKind =
-			tournamentGame.type === 'playoff' ? 'playoff' : 'group';
+		const channelKind = isLeague ? 'league' : (isPlayoff ? 'playoff' : 'group');
 		transport = createTournamentTransport({
 			baseUrl,
 			accessToken,
@@ -223,7 +231,7 @@ export function resolveGameContext(routeParams, auth, options = {}) {
 		lobbyScoringMode,
 		isHost,
 		myPlayerIndex,
-		tournamentGame: isTournament ? tournamentGame : null,
+		tournamentGame: (isTournament || isLeague) ? tournamentGame : null,
 		activeGame,
 		lobbyId,
 	};

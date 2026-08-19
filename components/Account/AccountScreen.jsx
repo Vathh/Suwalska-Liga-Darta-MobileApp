@@ -3,7 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import useAuth from '../../hooks/useAuth';
 import { colors } from '../../theme/colors';
 
-/** Menu konta: profil, zmiana hasła, wylogowanie. */
+/** Menu konta: gdzie gram, profil, zmiana hasła, wylogowanie. */
 const AccountScreen = ({ navigation }) => {
 	const { auth, logout } = useAuth();
 
@@ -34,6 +34,12 @@ const AccountScreen = ({ navigation }) => {
 
 	return (
 		<View style={styles.container}>
+			<Pressable
+				style={styles.item}
+				onPress={() => navigation.navigate('MyCompetitions')}
+			>
+				<Text style={styles.itemText}>Gdzie gram</Text>
+			</Pressable>
 			<Pressable style={styles.item} onPress={openOwnProfile}>
 				<Text style={styles.itemText}>Profil</Text>
 			</Pressable>

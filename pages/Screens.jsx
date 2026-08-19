@@ -14,6 +14,8 @@ import JoinTournamentScreen from '../components/Tournament/JoinTournamentScreen'
 import Home from '../components/Core/Home';
 import HomeDashboard from '../components/Core/HomeDashboard';
 import QuickGameLobby from '../components/QuickGame/QuickGameLobby';
+import LeagueGamesListScreen from '../components/League/LeagueGamesListScreen';
+import LeagueGameLobby from '../components/League/LeagueGameLobby';
 import TrainingHub from '../components/QuickGame/TrainingHub';
 import TrainingMatchSetup from '../components/QuickGame/TrainingMatchSetup';
 import TrainingHistoryList from '../components/QuickGame/TrainingHistoryList';
@@ -23,12 +25,15 @@ import InvitationsScreen from '../components/Invitations/InvitationsScreen';
 import PlayerProfileScreen from '../components/PlayerProfile/PlayerProfileScreen';
 import EditPlayerProfileScreen from '../components/PlayerProfile/EditPlayerProfileScreen';
 import AccountScreen from '../components/Account/AccountScreen';
+import MyCompetitionsScreen from '../components/Account/MyCompetitionsScreen';
 import ChangePasswordScreen from '../components/Account/ChangePasswordScreen';
 import CompetitionsScreen from '../components/Competitions/CompetitionsScreen';
 import OrganizationsListScreen from '../components/Competitions/OrganizationsListScreen';
 import SeasonsListScreen from '../components/Competitions/SeasonsListScreen';
 import TournamentsListScreen from '../components/Competitions/TournamentsListScreen';
 import OrganizationDetailScreen from '../components/Competitions/OrganizationDetailScreen';
+import LeagueDetailScreen from '../components/Competitions/LeagueDetailScreen';
+import LeagueSeasonDetailScreen from '../components/Competitions/LeagueSeasonDetailScreen';
 import SeasonDetailScreen from '../components/Competitions/SeasonDetailScreen';
 import TournamentDetailScreen from '../components/Competitions/TournamentDetailScreen';
 import HeaderTitle from '../components/Common/HeaderTitle';
@@ -67,6 +72,16 @@ function GrajStack() {
 			<Stack.Screen name="TrainingHistory" component={TrainingHistoryList} />
 			<Stack.Screen name="TrainingGameDetail" component={TrainingGameDetail} />
 			<Stack.Screen name="QuickGameLobby" component={QuickGameLobby} />
+			<Stack.Screen
+				name="LeagueGames"
+				component={LeagueGamesListScreen}
+				options={{ title: 'Mecze ligowe' }}
+			/>
+			<Stack.Screen
+				name="LeagueGameLobby"
+				component={LeagueGameLobby}
+				options={{ title: 'Lobby ligowe' }}
+			/>
 			<Stack.Screen name="TournamentCode" component={TournamentCode} />
 			<Stack.Screen name="JoinTournament" component={JoinTournamentScreen} />
 		</Stack.Navigator>
@@ -81,6 +96,8 @@ function RozgrywkiStack() {
 			<Stack.Screen name="SeasonsList" component={SeasonsListScreen} />
 			<Stack.Screen name="TournamentsList" component={TournamentsListScreen} />
 			<Stack.Screen name="OrganizationDetail" component={OrganizationDetailScreen} />
+			<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} />
+			<Stack.Screen name="LeagueSeasonDetail" component={LeagueSeasonDetailScreen} />
 			<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} />
 			<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} />
 			<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
@@ -101,6 +118,16 @@ function KontoStack() {
 	return (
 		<Stack.Navigator screenOptions={stackScreenOptions}>
 			<Stack.Screen name="KontoHome" component={AccountScreen} />
+			<Stack.Screen
+				name="MyCompetitions"
+				component={MyCompetitionsScreen}
+				options={{ title: 'Gdzie gram' }}
+			/>
+			<Stack.Screen name="OrganizationDetail" component={OrganizationDetailScreen} />
+			<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} />
+			<Stack.Screen name="LeagueSeasonDetail" component={LeagueSeasonDetailScreen} />
+			<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} />
+			<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} />
 			<Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
 			<Stack.Screen
 				name="EditPlayerProfile"

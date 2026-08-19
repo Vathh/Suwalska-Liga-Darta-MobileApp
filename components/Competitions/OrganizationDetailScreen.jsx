@@ -88,9 +88,25 @@ const OrganizationDetailScreen = ({ navigation, route }) => {
 							{ label: 'Opis', value: organization.description?.trim() ? organization.description : '—' },
 							{ label: 'Utworzono', value: organization.createdAt || '—' },
 							{ label: 'Ostatnia aktywność', value: organization.updatedAt || '—' },
+							{ label: 'Ligi', value: String(data?.leagues?.length ?? 0) },
 							{ label: 'Sezony', value: String(data?.seasons?.length ?? 0) },
 						]}
 					/>
+
+					<Text style={styles.sectionTitle}>Ligi</Text>
+					{(data?.leagues ?? []).length === 0 ? (
+						<Text style={styles.empty}>Brak lig.</Text>
+					) : (
+						(data?.leagues ?? []).map((league) => (
+							<Pressable
+								key={league.id}
+								style={styles.linkCard}
+								onPress={() => navigation.navigate('LeagueDetail', { id: league.id })}
+							>
+								<Text style={styles.linkCardText}>{league.name}</Text>
+							</Pressable>
+						))
+					)}
 
 					<Text style={styles.sectionTitle}>Sezony</Text>
 					{(data?.seasons ?? []).length === 0 ? (

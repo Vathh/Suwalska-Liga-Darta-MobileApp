@@ -22,7 +22,7 @@ export function canCounterInput({
 		return true;
 	}
 
-	if (mode === GAME_MODE.TOURNAMENT) {
+	if (mode === GAME_MODE.TOURNAMENT || mode === GAME_MODE.LEAGUE) {
 		return true;
 	}
 

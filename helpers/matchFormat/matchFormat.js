@@ -6,6 +6,8 @@ export const DEFAULT_MATCH_FORMAT = {
 	outRule: 'double_out',
 	bob27Mode: 'hard',
 	bob27Bull: 'with',
+	winMode: 'first_to',
+	winLength: 2,
 };
 
 export const STARTING_SCORE_OPTIONS = [
@@ -141,6 +143,16 @@ export function normalizeMatchFormat(input) {
 	const isCatch40 = gameType === GAME_TYPE_CATCH40;
 	const isCricket56 = gameType === GAME_TYPE_CRICKET56;
 	const hideSets = isCricket || isBob27 || isAtc || isCatch40 || isCricket56;
+	const winMode = String(input.winMode ?? input.win_mode ?? 'first_to').toLowerCase() === 'best_of'
+		? 'best_of'
+		: 'first_to';
+	const winLength = Number(
+		input.winLength
+			?? input.win_length
+			?? (winMode === 'best_of'
+				? Math.max(2, (Number(input.legsToWinSet ?? input.legs_to_win_set ?? base.legsToWinSet) * 2) - 1)
+				: (Number(input.legsToWinSet ?? input.legs_to_win_set ?? base.legsToWinSet))),
+	);
 
 	return {
 		startingScore: Number(
@@ -160,6 +172,8 @@ export function normalizeMatchFormat(input) {
 		outRule: String(input.outRule ?? input.out_rule ?? base.outRule),
 		bob27Mode: normalizeBob27Mode(input.bob27Mode ?? input.bob27_mode ?? base.bob27Mode),
 		bob27Bull: normalizeBob27Bull(input.bob27Bull ?? input.bob27_bull ?? base.bob27Bull),
+		winMode,
+		winLength,
 	};
 }
 
@@ -187,6 +201,10 @@ export function formatMatchLabel(format) {
 		return `Cricket 60 · do ${f.legsToWinSet} legów`;
 	}
 	if (isSingleSetFormat(f)) {
+		if (f.winMode === 'best_of') {
+			return `${f.startingScore} · best of ${f.winLength}`;
+		}
+
 		return `${f.startingScore} · do ${f.legsToWinSet} legów`;
 	}
 
@@ -200,6 +218,18 @@ export function isMatchWon(playerState, format) {
 	}
 
 	return (playerState?.setsWon ?? 0) >= f.setsToWinMatch;
+}
+
+export function isMatchFinished(playerStates, format) {
+	const f = normalizeMatchFormat(format);
+	const states = playerStates ?? [];
+	if (f.winMode === 'best_of' && isSingleSetFormat(f) && states.length >= 2) {
+		const a = states[0]?.legsWon ?? 0;
+		const b = states[1]?.legsWon ?? 0;
+		return a >= f.legsToWinSet || b >= f.legsToWinSet || (a + b) >= f.winLength;
+	}
+
+	return states.some((state) => isMatchWon(state, f));
 }
 
 export function findWinnerIndex(playerStates, format) {

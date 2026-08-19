@@ -1,17 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
 import useAuth from './useAuth';
 import { navigate } from '../helpers/navigationRef';
 import { registerPushToken } from '../helpers/pushNotifications/registerPushToken';
 
-const INVITATION_TABS = new Set(['friends', 'tournament', 'pojedynek']);
-
 function tabFromNotificationData(data) {
 	const tab = data?.tab;
-	if (typeof tab === 'string' && INVITATION_TABS.has(tab)) {
-		return tab;
+	if (tab === 'friends') {
+		return 'friends';
 	}
-	return 'pojedynek';
+	return 'gra';
 }
 
 function openInvitationsFromResponse(response) {

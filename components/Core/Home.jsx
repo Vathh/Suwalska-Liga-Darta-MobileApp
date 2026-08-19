@@ -157,6 +157,15 @@ const Home = ({ navigation }) => {
         <Pressable style={styles.button} onPress={quickGameOnlineHandler}>
           <Text style={styles.buttonText}>Szybka gra online</Text>
         </Pressable>
+        {auth?.accessToken ? (
+          <Pressable
+            style={styles.button}
+            onPress={() => navigation.navigate('LeagueGames')}
+          >
+            <Text style={styles.buttonText}>Mecze ligowe</Text>
+            <Text style={styles.buttonHint}>Twoje mecze w otwartym sezonie</Text>
+          </Pressable>
+        ) : null}
         <Pressable style={styles.button} onPress={trainingHandler}>
           <Text style={styles.buttonText}>Trening</Text>
         </Pressable>

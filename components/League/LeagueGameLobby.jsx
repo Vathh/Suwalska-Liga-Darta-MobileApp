@@ -1,0 +1,194 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+	ActivityIndicator,
+	Alert,
+	Pressable,
+	StyleSheet,
+	Text,
+	View,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import useAuth from '../../hooks/useAuth';
+import {
+	acceptLeagueGameLobby,
+	cancelLeagueGameLobby,
+	fetchLeagueGame,
+	rejectLeagueGameLobby,
+	startLeagueGameScoring,
+} from '../../helpers/leagueGamesApi';
+import { colors } from '../../theme/colors';
+
+export default function LeagueGameLobby({ navigation, route }) {
+	const { auth } = useAuth();
+	const gameId = route.params?.gameId ?? route.params?.initialGame?.id;
+	const [game, setGame] = useState(route.params?.initialGame ?? null);
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState('');
+
+	const load = useCallback(async () => {
+		if (!auth?.accessToken || !gameId) {
+			return;
+		}
+		try {
+			const { ok, data } = await fetchLeagueGame(gameId, auth.accessToken);
+			if (ok) {
+				setGame(data);
+				setError('');
+				if (data.status === 'in_progress' && data.canResumeScoring) {
+					navigation.navigate('GameScoring', {
+						game: {
+							id: data.id,
+							type: 'league',
+							player1: data.player1,
+							player2: data.player2,
+							matchFormat: data.format,
+						},
+					});
+				}
+			} else {
+				setError(data?.message || 'Nie udało się odświeżyć lobby.');
+			}
+		} catch {
+			setError('Błąd połączenia.');
+		}
+	}, [auth?.accessToken, gameId, navigation]);
+
+	useFocusEffect(
+		useCallback(() => {
+			load();
+			const timer = setInterval(load, 3000);
+			return () => clearInterval(timer);
+		}, [load]),
+	);
+
+	useEffect(() => {
+		navigation.setOptions({ title: 'Lobby ligowe' });
+	}, [navigation]);
+
+	const run = async (action, failTitle) => {
+		if (!auth?.accessToken || busy || !gameId) {
+			return;
+		}
+		setBusy(true);
+		try {
+			const { ok, data } = await action(gameId, auth.accessToken);
+			if (ok) {
+				setGame(data);
+				if (data.status === 'in_progress' && data.canResumeScoring) {
+					navigation.navigate('GameScoring', {
+						game: {
+							id: data.id,
+							type: 'league',
+							player1: data.player1,
+							player2: data.player2,
+							matchFormat: data.format,
+						},
+					});
+				}
+				if (data.status === 'scheduled') {
+					navigation.goBack();
+				}
+			} else {
+				Alert.alert(failTitle, data?.message || 'Operacja nie powiodła się.');
+			}
+		} catch {
+			Alert.alert('Błąd', 'Błąd połączenia.');
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	if (!game) {
+		return (
+			<View style={styles.container}>
+				<ActivityIndicator size="large" color={colors.accent} />
+			</View>
+		);
+	}
+
+	return (
+		<View style={styles.container}>
+			<Text style={styles.eyebrow}>{game.league?.name}</Text>
+			<Text style={styles.title}>{game.player1?.name} vs {game.player2?.name}</Text>
+			<Text style={styles.meta}>{game.division?.name}</Text>
+			{game.matchday ? (
+				<Text style={styles.meta}>Kolejka {game.matchday.roundNumber} · {game.matchday.windowLabel}</Text>
+			) : null}
+			<View style={styles.formatBox}>
+				<Text style={styles.formatLabel}>Format (zablokowany)</Text>
+				<Text style={styles.formatValue}>{game.formatLabel}</Text>
+			</View>
+			<Text style={styles.hint}>
+				Składu i formatu nie da się zmienić. Gra na jednym telefonie — gospodarz wpisuje oba wyniki.
+			</Text>
+			<Text style={styles.status}>
+				{game.opponentAccepted
+					? 'Przeciwnik zaakceptował. Gospodarz może wystartować.'
+					: game.isHost
+						? 'Czekamy, aż przeciwnik zaakceptuje zaproszenie.'
+						: 'Zaakceptuj, żeby gospodarz mógł wystartować mecz.'}
+			</Text>
+			{error ? <Text style={styles.error}>{error}</Text> : null}
+
+			{game.canAccept ? (
+				<Pressable style={[styles.button, busy && styles.disabled]} onPress={() => run(acceptLeagueGameLobby, 'Akceptacja')} disabled={busy}>
+					<Text style={styles.buttonText}>{busy ? '…' : 'Akceptuj'}</Text>
+				</Pressable>
+			) : null}
+			{game.canStartScoring ? (
+				<Pressable style={[styles.button, busy && styles.disabled]} onPress={() => run(startLeagueGameScoring, 'Start')} disabled={busy}>
+					<Text style={styles.buttonText}>{busy ? '…' : 'Start'}</Text>
+				</Pressable>
+			) : null}
+			{game.canReject ? (
+				<Pressable style={[styles.buttonOutlined, busy && styles.disabled]} onPress={() => run(rejectLeagueGameLobby, 'Odrzucenie')} disabled={busy}>
+					<Text style={styles.buttonOutlinedText}>Odrzuć</Text>
+				</Pressable>
+			) : null}
+			{game.canCancel ? (
+				<Pressable style={[styles.buttonOutlined, busy && styles.disabled]} onPress={() => run(cancelLeagueGameLobby, 'Anulowanie')} disabled={busy}>
+					<Text style={styles.buttonOutlinedText}>Anuluj lobby</Text>
+				</Pressable>
+			) : null}
+		</View>
+	);
+}
+
+const styles = StyleSheet.create({
+	container: { flex: 1, backgroundColor: colors.bg, padding: 24 },
+	eyebrow: { fontSize: 13, color: colors.accent, marginBottom: 8, fontWeight: '600' },
+	title: { fontSize: 22, color: colors.text, fontWeight: '700', marginBottom: 8 },
+	meta: { fontSize: 14, color: colors.textMuted, marginBottom: 4 },
+	formatBox: {
+		marginTop: 20,
+		marginBottom: 12,
+		padding: 14,
+		borderRadius: 8,
+		backgroundColor: colors.bgElevated,
+		borderWidth: 1,
+		borderColor: colors.border,
+	},
+	formatLabel: { fontSize: 12, color: colors.textDim, marginBottom: 4 },
+	formatValue: { fontSize: 16, color: colors.text, fontWeight: '600' },
+	hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18, marginBottom: 16 },
+	status: { fontSize: 14, color: colors.accent, marginBottom: 16, lineHeight: 20 },
+	error: { fontSize: 14, color: colors.danger, marginBottom: 12 },
+	button: {
+		backgroundColor: colors.accent,
+		paddingVertical: 12,
+		borderRadius: 8,
+		alignItems: 'center',
+		marginBottom: 10,
+	},
+	buttonText: { color: colors.onAccent, fontWeight: 'bold', fontSize: 16 },
+	buttonOutlined: {
+		borderWidth: 2,
+		borderColor: colors.accent,
+		paddingVertical: 12,
+		borderRadius: 8,
+		alignItems: 'center',
+		marginBottom: 10,
+	},
+	buttonOutlinedText: { color: colors.accent, fontWeight: 'bold', fontSize: 16 },
+	disabled: { opacity: 0.6 },
+});

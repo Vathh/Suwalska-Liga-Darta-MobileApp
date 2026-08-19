@@ -2,8 +2,11 @@ import {
 	FRIENDS_ACCEPT_URL,
 	FRIENDS_INVITATIONS_RECEIVED_URL,
 	FRIENDS_REJECT_URL,
+	ORGANIZATION_INVITATIONS_RECEIVED_URL,
 	QUICK_GAME_LOBBY_INVITATIONS_URL,
 	TOURNAMENT_INVITATIONS_RECEIVED_URL,
+	getOrganizationInvitationAcceptUrl,
+	getOrganizationInvitationRejectUrl,
 	getQuickGameLobbyRejectInvitationUrl,
 	getQuickGameLobbyUrl,
 	getTournamentInvitationAcceptUrl,
@@ -14,6 +17,10 @@ import { apiRequest } from './apiClient';
 
 export async function fetchTournamentInvitationsReceived(accessToken) {
 	return apiRequest(TOURNAMENT_INVITATIONS_RECEIVED_URL, { accessToken });
+}
+
+export async function fetchOrganizationInvitationsReceived(accessToken) {
+	return apiRequest(ORGANIZATION_INVITATIONS_RECEIVED_URL, { accessToken });
 }
 
 export async function fetchQuickGameLobbyInvitations(accessToken) {
@@ -51,6 +58,21 @@ export async function joinQuickGameLobby(lobbyId, accessToken) {
 
 export async function rejectQuickGameLobbyInvitation(invitationId, accessToken) {
 	return apiRequest(getQuickGameLobbyRejectInvitationUrl(invitationId), {
+		method: 'POST',
+		accessToken,
+		json: true,
+		body: {},
+	});
+}
+
+const ORGANIZATION_INVITATION_URL_BY_ACTION = {
+	accept: getOrganizationInvitationAcceptUrl,
+	reject: getOrganizationInvitationRejectUrl,
+};
+
+export async function actOnOrganizationInvitation(invitationId, action, accessToken) {
+	const buildUrl = ORGANIZATION_INVITATION_URL_BY_ACTION[action];
+	return apiRequest(buildUrl(invitationId), {
 		method: 'POST',
 		accessToken,
 		json: true,

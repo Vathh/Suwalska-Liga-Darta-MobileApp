@@ -12,30 +12,34 @@ import {
 import useAuth from '../../hooks/useAuth';
 import {
   actOnFriendInvitation,
+  actOnOrganizationInvitation,
   actOnTournamentInvitation,
   fetchFriendInvitationsReceived,
+  fetchOrganizationInvitationsReceived,
   fetchQuickGameLobbyInvitations,
   fetchTournamentInvitationsReceived,
   joinQuickGameLobby,
   rejectQuickGameLobbyInvitation,
 } from '../../helpers/invitationsApi';
+import {
+  acceptLeagueGameLobby,
+  fetchLeagueGameInvitations,
+  rejectLeagueGameLobby,
+} from '../../helpers/leagueGamesApi';
 import { colors } from '../../theme/colors';
 
-const TAB_TOURNAMENT = 'tournament';
-const TAB_POJEDYNEK = 'pojedynek';
+const TAB_GRA = 'gra';
 const TAB_FRIENDS = 'friends';
 
-const VALID_TABS = new Set([TAB_TOURNAMENT, TAB_POJEDYNEK, TAB_FRIENDS]);
-
 function resolveInitialTab(route) {
-  const tab = route?.params?.tab;
-  return VALID_TABS.has(tab) ? tab : TAB_POJEDYNEK;
+  return route?.params?.tab === TAB_FRIENDS ? TAB_FRIENDS : TAB_GRA;
 }
 
 const InvitationsScreen = ({ navigation, route }) => {
   const { auth } = useAuth();
   const [activeTab, setActiveTab] = useState(() => resolveInitialTab(route));
   const [tournamentInvitations, setTournamentInvitations] = useState([]);
+  const [organizationInvitations, setOrganizationInvitations] = useState([]);
   const [lobbyInvitations, setLobbyInvitations] = useState([]);
   const [friendInvitations, setFriendInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,23 +48,25 @@ const InvitationsScreen = ({ navigation, route }) => {
   const [actionId, setActionId] = useState(null);
 
   useEffect(() => {
-    const tab = route?.params?.tab;
-    if (VALID_TABS.has(tab)) {
-      setActiveTab(tab);
-    }
+    setActiveTab(resolveInitialTab(route));
   }, [route?.params?.tab]);
 
   const fetchAll = useCallback(async () => {
     if (!auth?.accessToken) return;
     try {
-      const [tournamentRes, lobbyRes, friendsRes] = await Promise.all([
+      const [tournamentRes, organizationRes, lobbyRes, leagueRes, friendsRes] = await Promise.all([
         fetchTournamentInvitationsReceived(auth.accessToken),
+        fetchOrganizationInvitationsReceived(auth.accessToken),
         fetchQuickGameLobbyInvitations(auth.accessToken),
+        fetchLeagueGameInvitations(auth.accessToken),
         fetchFriendInvitationsReceived(auth.accessToken),
       ]);
 
       setTournamentInvitations(tournamentRes.ok ? (tournamentRes.data?.invitations ?? []) : []);
-      setLobbyInvitations(lobbyRes.ok ? (lobbyRes.data?.invitations ?? []) : []);
+      setOrganizationInvitations(organizationRes.ok ? (organizationRes.data?.invitations ?? []) : []);
+      const quickInvites = lobbyRes.ok ? (lobbyRes.data?.invitations ?? []) : [];
+      const leagueInvites = leagueRes.ok ? (leagueRes.data?.invitations ?? []) : [];
+      setLobbyInvitations([...leagueInvites, ...quickInvites]);
 
       if (friendsRes.ok) {
         setFriendInvitations(
@@ -107,10 +113,41 @@ const InvitationsScreen = ({ navigation, route }) => {
     }
   };
 
+  const handleOrganizationAction = async (invitationId, action) => {
+    if (!auth?.accessToken || actionId) return;
+    setActionId(`${action}-org-${invitationId}`);
+
+    try {
+      const { ok, data } = await actOnOrganizationInvitation(invitationId, action, auth.accessToken);
+
+      if (ok) {
+        await fetchAll();
+      } else {
+        Alert.alert('Błąd', data?.message || 'Operacja nie powiodła się.');
+      }
+    } catch (e) {
+      Alert.alert('Błąd', 'Błąd połączenia.');
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const handleLobbyJoin = async (inv) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`join-${inv.id}`);
     try {
+      if (inv.type === 'league') {
+        const { ok, data } = await acceptLeagueGameLobby(inv.id, auth.accessToken);
+        if (ok) {
+          navigation.navigate('Graj', {
+            screen: 'LeagueGameLobby',
+            params: { gameId: inv.id, initialGame: data },
+          });
+        } else {
+          Alert.alert('Błąd', data?.message || 'Nie udało się zaakceptować meczu ligowego.');
+        }
+        return;
+      }
       const { ok, status, data } = await joinQuickGameLobby(inv.lobbyId, auth.accessToken);
       if (ok && data?.id) {
         navigation.navigate('Graj', {
@@ -158,7 +195,9 @@ const InvitationsScreen = ({ navigation, route }) => {
     if (!auth?.accessToken || actionId) return;
     setActionId(`reject-${inv.id}`);
     try {
-      const { ok, data } = await rejectQuickGameLobbyInvitation(inv.id, auth.accessToken);
+      const { ok, data } = inv.type === 'league'
+        ? await rejectLeagueGameLobby(inv.id, auth.accessToken)
+        : await rejectQuickGameLobbyInvitation(inv.id, auth.accessToken);
       if (ok) {
         setLobbyInvitations((prev) => prev.filter((i) => i.id !== inv.id));
       } else {
@@ -187,60 +226,129 @@ const InvitationsScreen = ({ navigation, route }) => {
     );
   }
 
-  const renderTournamentTab = () => {
-    if (tournamentInvitations.length === 0) {
-      return <Text style={styles.hint}>Brak zaproszeń turniejowych.</Text>;
-    }
+  const renderTournamentCard = (inv) => {
+    const isPending = inv.status === 'pending';
+    const isAccepted = inv.status === 'accepted';
 
-    return tournamentInvitations.map((inv) => {
-      const isPending = inv.status === 'pending';
-      const isAccepted = inv.status === 'accepted';
-      const busy = actionId?.startsWith(`${isPending ? 'accept' : 'withdraw'}-${inv.id}`)
-        || actionId?.startsWith(`reject-${inv.id}`)
-        || actionId?.startsWith(`withdraw-${inv.id}`);
-
-      return (
-        <View key={inv.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{inv.tournamentName}</Text>
-          <Text style={styles.cardSub}>{inv.statusLabel ?? inv.status}</Text>
-          <View style={styles.buttons}>
-            {isPending ? (
-              <>
-                <Pressable
-                  style={[styles.button, actionId && styles.buttonDisabled]}
-                  onPress={() => handleTournamentAction(inv.id, 'accept')}
-                  disabled={!!actionId}
-                >
-                  <Text style={styles.buttonText}>
-                    {actionId === `accept-${inv.id}` ? 'Akceptowanie…' : 'Akceptuj'}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.buttonOutlined, actionId && styles.buttonDisabled]}
-                  onPress={() => handleTournamentAction(inv.id, 'reject')}
-                  disabled={!!actionId}
-                >
-                  <Text style={styles.buttonOutlinedText}>
-                    {actionId === `reject-${inv.id}` ? 'Odrzucanie…' : 'Odrzuć'}
-                  </Text>
-                </Pressable>
-              </>
-            ) : null}
-            {isAccepted ? (
+    return (
+      <View key={`tournament-${inv.id}`} style={styles.card}>
+        <Text style={styles.cardKind}>Turniej</Text>
+        <Text style={styles.cardTitle}>{inv.tournamentName}</Text>
+        <Text style={styles.cardSub}>{inv.statusLabel ?? inv.status}</Text>
+        <View style={styles.buttons}>
+          {isPending ? (
+            <>
               <Pressable
-                style={[styles.buttonOutlined, styles.buttonFull, actionId && styles.buttonDisabled]}
-                onPress={() => handleTournamentAction(inv.id, 'withdraw')}
+                style={[styles.button, actionId && styles.buttonDisabled]}
+                onPress={() => handleTournamentAction(inv.id, 'accept')}
+                disabled={!!actionId}
+              >
+                <Text style={styles.buttonText}>
+                  {actionId === `accept-${inv.id}` ? 'Akceptowanie…' : 'Akceptuj'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.buttonOutlined, actionId && styles.buttonDisabled]}
+                onPress={() => handleTournamentAction(inv.id, 'reject')}
                 disabled={!!actionId}
               >
                 <Text style={styles.buttonOutlinedText}>
-                  {actionId === `withdraw-${inv.id}` ? 'Wycofywanie…' : 'Wycofaj udział'}
+                  {actionId === `reject-${inv.id}` ? 'Odrzucanie…' : 'Odrzuć'}
                 </Text>
               </Pressable>
-            ) : null}
-          </View>
+            </>
+          ) : null}
+          {isAccepted ? (
+            <Pressable
+              style={[styles.buttonOutlined, styles.buttonFull, actionId && styles.buttonDisabled]}
+              onPress={() => handleTournamentAction(inv.id, 'withdraw')}
+              disabled={!!actionId}
+            >
+              <Text style={styles.buttonOutlinedText}>
+                {actionId === `withdraw-${inv.id}` ? 'Wycofywanie…' : 'Wycofaj udział'}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
-      );
-    });
+      </View>
+    );
+  };
+
+  const renderOrganizationCard = (inv) => (
+    <View key={`organization-${inv.id}`} style={styles.card}>
+      <Text style={styles.cardKind}>Organizacja</Text>
+      <Text style={styles.cardTitle}>{inv.organizationName}</Text>
+      <Text style={styles.cardSub}>{inv.statusLabel ?? inv.status}</Text>
+      <View style={styles.buttons}>
+        <Pressable
+          style={[styles.button, actionId && styles.buttonDisabled]}
+          onPress={() => handleOrganizationAction(inv.id, 'accept')}
+          disabled={!!actionId}
+        >
+          <Text style={styles.buttonText}>
+            {actionId === `accept-org-${inv.id}` ? 'Akceptowanie…' : 'Akceptuj'}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.buttonOutlined, actionId && styles.buttonDisabled]}
+          onPress={() => handleOrganizationAction(inv.id, 'reject')}
+          disabled={!!actionId}
+        >
+          <Text style={styles.buttonOutlinedText}>
+            {actionId === `reject-org-${inv.id}` ? 'Odrzucanie…' : 'Odrzuć'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const renderLobbyCard = (inv) => (
+    <View key={`${inv.type === 'league' ? 'league' : 'lobby'}-${inv.id}`} style={styles.card}>
+      <Text style={styles.cardKind}>{inv.type === 'league' ? 'Mecz ligowy' : 'Quick game'}</Text>
+      <Text style={styles.cardTitle}>
+        {inv.hostName} zaprasza do {inv.type === 'league' ? 'meczu ligowego' : 'pojedynku'}
+      </Text>
+      {inv.leagueName ? <Text style={styles.cardSub}>{inv.leagueName}{inv.formatLabel ? ` · ${inv.formatLabel}` : ''}</Text> : null}
+      <View style={styles.buttons}>
+        <Pressable
+          style={[styles.button, actionId && styles.buttonDisabled]}
+          onPress={() => handleLobbyJoin(inv)}
+          disabled={!!actionId}
+        >
+          <Text style={styles.buttonText}>
+            {actionId === `join-${inv.id}` ? 'Dołączanie…' : (inv.type === 'league' ? 'Akceptuj' : 'Dołącz')}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.buttonOutlined, actionId && styles.buttonDisabled]}
+          onPress={() => handleLobbyReject(inv)}
+          disabled={!!actionId}
+        >
+          <Text style={styles.buttonOutlinedText}>
+            {actionId === `reject-${inv.id}` ? 'Odrzucanie…' : 'Odrzuć'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const renderGameTab = () => {
+    const hasAny =
+      tournamentInvitations.length > 0
+      || organizationInvitations.length > 0
+      || lobbyInvitations.length > 0;
+
+    if (!hasAny) {
+      return <Text style={styles.hint}>Brak zaproszeń do gry.</Text>;
+    }
+
+    return (
+      <>
+        {tournamentInvitations.map(renderTournamentCard)}
+        {organizationInvitations.map(renderOrganizationCard)}
+        {lobbyInvitations.map(renderLobbyCard)}
+      </>
+    );
   };
 
   const renderFriendsTab = () => {
@@ -277,38 +385,6 @@ const InvitationsScreen = ({ navigation, route }) => {
     ));
   };
 
-  const renderPojedynekTab = () => {
-    if (lobbyInvitations.length === 0) {
-      return <Text style={styles.hint}>Brak zaproszeń do pojedynku.</Text>;
-    }
-
-    return lobbyInvitations.map((inv) => (
-      <View key={inv.id} style={styles.card}>
-        <Text style={styles.cardTitle}>{inv.hostName} zaprasza do pojedynku</Text>
-        <View style={styles.buttons}>
-          <Pressable
-            style={[styles.button, actionId && styles.buttonDisabled]}
-            onPress={() => handleLobbyJoin(inv)}
-            disabled={!!actionId}
-          >
-            <Text style={styles.buttonText}>
-              {actionId === `join-${inv.id}` ? 'Dołączanie…' : 'Dołącz'}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.buttonOutlined, actionId && styles.buttonDisabled]}
-            onPress={() => handleLobbyReject(inv)}
-            disabled={!!actionId}
-          >
-            <Text style={styles.buttonOutlinedText}>
-              {actionId === `reject-${inv.id}` ? 'Odrzucanie…' : 'Odrzuć'}
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    ));
-  };
-
   return (
     <ScrollView
       style={styles.container}
@@ -317,16 +393,10 @@ const InvitationsScreen = ({ navigation, route }) => {
     >
       <View style={styles.tabs}>
         <Pressable
-          style={[styles.tab, activeTab === TAB_POJEDYNEK && styles.tabActive]}
-          onPress={() => setActiveTab(TAB_POJEDYNEK)}
+          style={[styles.tab, activeTab === TAB_GRA && styles.tabActive]}
+          onPress={() => setActiveTab(TAB_GRA)}
         >
-          <Text style={[styles.tabText, activeTab === TAB_POJEDYNEK && styles.tabTextActive]}>Pojedynek</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.tab, activeTab === TAB_TOURNAMENT && styles.tabActive]}
-          onPress={() => setActiveTab(TAB_TOURNAMENT)}
-        >
-          <Text style={[styles.tabText, activeTab === TAB_TOURNAMENT && styles.tabTextActive]}>Turniej</Text>
+          <Text style={[styles.tabText, activeTab === TAB_GRA && styles.tabTextActive]}>Gra</Text>
         </Pressable>
         <Pressable
           style={[styles.tab, activeTab === TAB_FRIENDS && styles.tabActive]}
@@ -338,11 +408,7 @@ const InvitationsScreen = ({ navigation, route }) => {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {activeTab === TAB_FRIENDS
-        ? renderFriendsTab()
-        : activeTab === TAB_POJEDYNEK
-          ? renderPojedynekTab()
-          : renderTournamentTab()}
+      {activeTab === TAB_FRIENDS ? renderFriendsTab() : renderGameTab()}
     </ScrollView>
   );
 };
@@ -374,6 +440,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated,
     borderRadius: 8,
     marginBottom: 12,
+  },
+  cardKind: {
+    fontSize: 12,
+    color: colors.textDim,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 6,
   },
   cardTitle: { fontSize: 16, color: colors.textMuted, fontWeight: '600', marginBottom: 4 },
   cardSub: { fontSize: 14, color: colors.textDim, marginBottom: 12 },

@@ -299,6 +299,33 @@ export const getGroupGameScoringBaseUrl = (gameId) =>
 export const getPlayoffGameScoringBaseUrl = (playoffGameId) =>
 	API_BASE_URL + PLAYOFF_GAMES_PREFIX + '/' + playoffGameId;
 
+const LEAGUE_GAMES_PREFIX = '/league-games';
+
+export const LEAGUE_GAMES_MINE_URL = API_BASE_URL + LEAGUE_GAMES_PREFIX + '/mine';
+export const LEAGUE_GAMES_INVITATIONS_URL =
+	API_BASE_URL + LEAGUE_GAMES_PREFIX + '/invitations';
+
+export const getLeagueGameUrl = (gameId) =>
+	API_BASE_URL + LEAGUE_GAMES_PREFIX + '/' + gameId;
+
+export const getLeagueGameOpenLobbyUrl = (gameId) =>
+	getLeagueGameUrl(gameId) + '/open-lobby';
+
+export const getLeagueGameAcceptUrl = (gameId) =>
+	getLeagueGameUrl(gameId) + '/accept';
+
+export const getLeagueGameRejectUrl = (gameId) =>
+	getLeagueGameUrl(gameId) + '/reject';
+
+export const getLeagueGameCancelUrl = (gameId) =>
+	getLeagueGameUrl(gameId) + '/cancel';
+
+export const getLeagueGameStartUrl = (gameId) =>
+	getLeagueGameUrl(gameId) + '/start';
+
+export const getLeagueGameScoringBaseUrl = (gameId) =>
+	getLeagueGameUrl(gameId);
+
 export const getGameScoringStateUrl = (baseUrl) => baseUrl + '/scoring/state';
 export const getGameScoringStartLegUrl = (baseUrl) => baseUrl + '/legs';
 export const getGameScoringVisitUrl = (baseUrl, legId) =>
@@ -308,7 +335,7 @@ export const getGameScoringUndoUrl = (baseUrl, legId) =>
 export const getGameScoringCloseLegUrl = (baseUrl, legId) =>
 	baseUrl + '/legs/' + legId + '/close';
 
-/** Kanał publiczny Pusher: quick-game.{id} | group-game.{id} | playoff-game.{id} */
+/** Kanał publiczny Pusher: quick-game.{id} | group-game.{id} | playoff-game.{id} | league-game.{id} */
 export const getGameScoringChannelName = (kind, gameId) =>
 	kind + '-game.' + gameId;
 const FRIENDS_PREFIX = '/friends';
@@ -338,6 +365,14 @@ export const getTournamentInvitationRejectUrl = (invitationId) =>
 export const getTournamentInvitationWithdrawUrl = (invitationId) =>
 	API_BASE_URL + TOURNAMENT_INVITATIONS_PREFIX + '/' + invitationId + '/withdraw';
 
+const ORGANIZATION_INVITATIONS_PREFIX = '/organizations/invitations';
+export const ORGANIZATION_INVITATIONS_RECEIVED_URL =
+	API_BASE_URL + ORGANIZATION_INVITATIONS_PREFIX + '/received';
+export const getOrganizationInvitationAcceptUrl = (invitationId) =>
+	API_BASE_URL + ORGANIZATION_INVITATIONS_PREFIX + '/' + invitationId + '/accept';
+export const getOrganizationInvitationRejectUrl = (invitationId) =>
+	API_BASE_URL + ORGANIZATION_INVITATIONS_PREFIX + '/' + invitationId + '/reject';
+
 export const getTournamentJoinPreviewUrl = (code) =>
 	API_BASE_URL + '/tournaments/join/' + encodeURIComponent(code);
 export const getTournamentJoinApplyUrl = (code) =>
@@ -352,6 +387,10 @@ export const getTournamentsUrl = (page = 1) =>
 
 export const getOrganizationUrl = (organizationId) =>
 	API_BASE_URL + '/organizations/' + organizationId;
+export const getLeagueUrl = (leagueId) =>
+	API_BASE_URL + '/leagues/' + leagueId;
+export const getLeagueSeasonUrl = (seasonId) =>
+	API_BASE_URL + '/league-seasons/' + seasonId;
 export const getSeasonUrl = (seasonId) =>
 	API_BASE_URL + '/seasons/' + seasonId;
 export const getSeasonStandingsUrl = (seasonId, page = 1) =>
@@ -360,3 +399,5 @@ export const getTournamentUrl = (tournamentId) =>
 	API_BASE_URL + '/tournaments/' + tournamentId;
 
 export const PUSH_TOKENS_API_URL = API_BASE_URL + '/push-tokens';
+
+export const ME_COMPETITIONS_URL = API_BASE_URL + '/me/competitions';

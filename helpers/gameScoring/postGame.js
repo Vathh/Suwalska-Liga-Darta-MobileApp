@@ -7,7 +7,7 @@ import { GAME_MODE } from './resolveGameContext.js';
 
 import {
 	findWinnerIndex as findWinnerIndexByFormat,
-	isMatchWon,
+	isMatchFinished,
 	normalizeMatchFormat,
 } from '../matchFormat/matchFormat.js';
 import { matchScoreForDisplay } from '../matchFormat/matchFormatScoring.js';
@@ -178,5 +178,5 @@ export function shouldHandleLocalTrainingWin({
 		return false;
 	}
 	const format = normalizeMatchFormat(matchFormat);
-	return playerStates.some((s) => isMatchWon(s, format));
+	return isMatchFinished(playerStates, format);
 }
