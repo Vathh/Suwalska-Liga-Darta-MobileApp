@@ -442,9 +442,7 @@ const Counter = ({
                 <TickingScore
                   value={s0?.score ?? 501}
                   style={[styles.counterText, styles.counterTextNoFlex, currentPlayerIndex === 0 && styles.goldText]}
-                  adjustsFontSizeToFit
                   numberOfLines={1}
-                  minimumFontScale={0.4}
                 />
                 {renderVisitDartsUnderScore(0, { overlay: isPerDart })}
               </View>
@@ -455,9 +453,7 @@ const Counter = ({
                 <TickingScore
                   value={s1?.score ?? 501}
                   style={[styles.counterText, styles.counterTextNoFlex, currentPlayerIndex === 1 && styles.goldText]}
-                  adjustsFontSizeToFit
                   numberOfLines={1}
-                  minimumFontScale={0.4}
                 />
                 {renderVisitDartsUnderScore(1, { alignRight: true, overlay: isPerDart })}
               </View>
@@ -670,10 +666,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   countersScoresRow: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 0,
     flexDirection: 'row',
     width: '100%',
-    minHeight: 0,
+    minHeight: 96,
   },
   averagesRow: {
     flexDirection: 'row',
@@ -690,6 +687,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     minWidth: 0,
+    minHeight: 96,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -733,7 +731,8 @@ const styles = StyleSheet.create({
     borderColor: colors.scrimMild
   },
   counterText: {
-    fontSize: 100,
+    fontSize: 72,
+    lineHeight: 80,
     flex: 1,
     justifyContent: 'center',
     textAlignVertical: 'center',

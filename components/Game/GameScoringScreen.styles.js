@@ -38,4 +38,8 @@ export const gameScoringScreenStyles = StyleSheet.create({
 		fontSize: 18,
 		color: colors.textMuted,
 	},
+	counterHost: {
+		flex: 1,
+		minHeight: 0,
+	},
 });

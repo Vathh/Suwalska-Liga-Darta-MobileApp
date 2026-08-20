@@ -330,6 +330,7 @@ export function useGameScoring({
 			return state;
 		} catch (e) {
 			console.warn('loadGameScoringState', e);
+			onStateLoadedRef.current?.(null);
 			return null;
 		}
 	}, [markMatchFinishedFromState]);

@@ -102,6 +102,7 @@ export default function LeagueGamesListScreen({ navigation }) {
 					player2: game.player2,
 					matchFormat: game.format,
 				},
+				askOpener: false,
 			});
 			return;
 		}

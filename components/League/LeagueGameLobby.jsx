@@ -18,6 +18,19 @@ import {
 } from '../../helpers/leagueGamesApi';
 import { colors } from '../../theme/colors';
 
+function navigateToLeagueScoring(navigation, data, { askOpener = false } = {}) {
+	navigation.navigate('GameScoring', {
+		game: {
+			id: data.id,
+			type: 'league',
+			player1: data.player1,
+			player2: data.player2,
+			matchFormat: data.format,
+		},
+		askOpener,
+	});
+}
+
 export default function LeagueGameLobby({ navigation, route }) {
 	const { auth } = useAuth();
 	const gameId = route.params?.gameId ?? route.params?.initialGame?.id;
@@ -35,15 +48,7 @@ export default function LeagueGameLobby({ navigation, route }) {
 				setGame(data);
 				setError('');
 				if (data.status === 'in_progress' && data.canResumeScoring) {
-					navigation.navigate('GameScoring', {
-						game: {
-							id: data.id,
-							type: 'league',
-							player1: data.player1,
-							player2: data.player2,
-							matchFormat: data.format,
-						},
-					});
+					navigateToLeagueScoring(navigation, data, { askOpener: false });
 				}
 			} else {
 				setError(data?.message || 'Nie udało się odświeżyć lobby.');
@@ -75,14 +80,8 @@ export default function LeagueGameLobby({ navigation, route }) {
 			if (ok) {
 				setGame(data);
 				if (data.status === 'in_progress' && data.canResumeScoring) {
-					navigation.navigate('GameScoring', {
-						game: {
-							id: data.id,
-							type: 'league',
-							player1: data.player1,
-							player2: data.player2,
-							matchFormat: data.format,
-						},
+					navigateToLeagueScoring(navigation, data, {
+						askOpener: action === startLeagueGameScoring,
 					});
 				}
 				if (data.status === 'scheduled') {

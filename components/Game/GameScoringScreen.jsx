@@ -70,6 +70,33 @@ import AtcGameScoringScreen from './AtcGameScoringScreen';
 import Catch40GameScoringScreen from './Catch40GameScoringScreen';
 import Cricket56GameScoringScreen from './Cricket56GameScoringScreen';
 
+function scoringStateHasProgress(state) {
+	if (!state) {
+		return false;
+	}
+	if ((state.visits?.length ?? 0) > 0) {
+		return true;
+	}
+	if ((state.legs?.length ?? 0) > 0) {
+		return true;
+	}
+	if (
+		(state.game?.player1LegsWon ?? 0) + (state.game?.player2LegsWon ?? 0) >
+		0
+	) {
+		return true;
+	}
+	if ((state.players ?? []).some((p) => (p.legsWon ?? 0) > 0)) {
+		return true;
+	}
+	const legNumber =
+		state.currentLeg?.legNumber
+		?? state.turn?.legNumber
+		?? state.session?.currentLegNumber
+		?? 0;
+	return Number(legNumber) > 1;
+}
+
 const GameScoringScreen = ({ route, navigation }) => {
 	const { auth, setAuth } = useAuth();
 	const isFocused = useIsFocused();
@@ -117,8 +144,10 @@ const GameScoringScreen = ({ route, navigation }) => {
 	const [syncedMatchFormat, setSyncedMatchFormat] = useState(null);
 	const matchFormat = syncedMatchFormat ?? routeMatchFormat;
 
-	const isTournamentOnline =
-		mode === GAME_MODE.TOURNAMENT && syncEnabled;
+	const isH2hOnline =
+		(mode === GAME_MODE.TOURNAMENT || mode === GAME_MODE.LEAGUE) &&
+		syncEnabled;
+	const isTournamentOnline = mode === GAME_MODE.TOURNAMENT && syncEnabled;
 	const tournamentIdForSession =
 		auth?.tournamentId ?? activeGame?.tournamentId ?? tournamentGame?.tournamentId ?? null;
 
@@ -142,12 +171,15 @@ const GameScoringScreen = ({ route, navigation }) => {
 		},
 	});
 
+	const askOpenerOnMount = route.params?.askOpener === true;
 	const [isModalVisible, setIsModalVisible] = useState(
-		showStartModal && !isTournamentOnline,
+		askOpenerOnMount || (showStartModal && !isH2hOnline),
 	);
 	const [openerCheckPending, setOpenerCheckPending] =
-		useState(isTournamentOnline);
-	const matchOpenerChosenRef = useRef(!showStartModal && !isTournamentOnline);
+		useState(isH2hOnline && !askOpenerOnMount);
+	const matchOpenerChosenRef = useRef(
+		!askOpenerOnMount && !showStartModal && !isH2hOnline,
+	);
 	const gameOnPlayedRef = useRef(false);
 	const [audioStartReady, setAudioStartReady] = useState(!syncEnabled);
 	const [isQFModalVisible, setIsQFModalVisible] = useState(false);
@@ -302,28 +334,33 @@ const GameScoringScreen = ({ route, navigation }) => {
 			if (formatFromState) {
 				setSyncedMatchFormat(normalizeMatchFormat(formatFromState));
 			}
-			const hasProgress =
-				(state?.visits?.length ?? 0) > 0 ||
-				(state?.legs?.length ?? 0) > 0 ||
-				(state?.game?.player1LegsWon ?? 0) +
-					(state?.game?.player2LegsWon ?? 0) >
-					0 ||
-				(state?.players ?? []).some((p) => (p.legsWon ?? 0) > 0) ||
-				(state?.currentLeg?.legNumber ?? 1) > 1 ||
-				(state?.session?.currentLegNumber ?? 1) > 1;
+			const hasProgress = scoringStateHasProgress(state);
 			if (hasProgress) {
 				gameOnPlayedRef.current = true;
 			}
 			setAudioStartReady(true);
-			if (!isTournamentOnline || matchOpenerChosenRef.current) {
+			if (!isH2hOnline || matchOpenerChosenRef.current) {
 				return;
 			}
-			matchOpenerChosenRef.current = hasProgress;
-			setIsModalVisible(!hasProgress);
+			if (hasProgress) {
+				matchOpenerChosenRef.current = true;
+				setIsModalVisible(false);
+				setOpenerCheckPending(false);
+				return;
+			}
+			setIsModalVisible(true);
 			setOpenerCheckPending(false);
 		},
-		[isTournamentOnline],
+		[isH2hOnline],
 	);
+
+	useEffect(() => {
+		if (!askOpenerOnMount || matchOpenerChosenRef.current) {
+			return;
+		}
+		setIsModalVisible(true);
+		setOpenerCheckPending(false);
+	}, [askOpenerOnMount, isH2hOnline, reloadKey]);
 
 	const handleSyncedMatchFormat = useCallback((format) => {
 		if (format) {
@@ -344,7 +381,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		gameClosed,
 		isPerDartMode,
 		legOpenerIndexRef,
-		useLegOpenerRotation: mode === GAME_MODE.TOURNAMENT,
+		useLegOpenerRotation: isH2hOnline,
 		onFinishedQuickGameId: setFfaFinishedQuickGameId,
 		onStateLoaded: handleScoringStateLoaded,
 		onMatchFormat: handleSyncedMatchFormat,
@@ -492,10 +529,6 @@ const GameScoringScreen = ({ route, navigation }) => {
 		onFinished: showMatchFinished,
 	});
 
-	const toggleModal = () => {
-		setIsModalVisible((visibility) => !visibility);
-	};
-
 	const beginScoringBusy = useCallback((label = 'Zapisywanie wyniku…') => {
 		setScoringBusyLabel(label);
 		setScoringBusy(true);
@@ -548,7 +581,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		}
 		matchOpenerChosenRef.current = true;
 		setOpenerCheckPending(false);
-		toggleModal();
+		setIsModalVisible(false);
 	};
 
 	const handleNumberBtn = (number) => {
@@ -1012,27 +1045,29 @@ const GameScoringScreen = ({ route, navigation }) => {
 	function renderContent() {
 		if (selectedComponent === 'counter') {
 			return (
-				<Counter
-					players={players}
-					playerStates={playerStates}
-					currentPlayerIndex={currentPlayerIndex}
-					currentResult={currentResult}
-					resultEdited={resultEdited}
-					handleNumberBtn={handleNumberBtn}
-					handleOkBtn={handleOkBtn}
-					handleUndoBtn={handleUndoBtn}
-					handleClearBtn={handleClearBtn}
-					scoringMode={scoringMode}
-					canInput={counterCanInput}
-					showWaitingOverlay={!openerCheckPending}
-					submitting={scoringBusy}
-					gameClosed={gameClosed}
-					oneDeviceSpectator={counterOneDeviceSpectator}
-					handleDartSubmit={handleDartSubmit}
-					handleUndoSingleDart={handleUndoSingleDart}
-					localVisitRemaining={localVisitRemaining}
-					matchFormat={matchFormat}
-				/>
+				<View style={styles.counterHost}>
+					<Counter
+						players={players}
+						playerStates={playerStates}
+						currentPlayerIndex={currentPlayerIndex}
+						currentResult={currentResult}
+						resultEdited={resultEdited}
+						handleNumberBtn={handleNumberBtn}
+						handleOkBtn={handleOkBtn}
+						handleUndoBtn={handleUndoBtn}
+						handleClearBtn={handleClearBtn}
+						scoringMode={scoringMode}
+						canInput={counterCanInput}
+						showWaitingOverlay={!openerCheckPending}
+						submitting={scoringBusy}
+						gameClosed={gameClosed}
+						oneDeviceSpectator={counterOneDeviceSpectator}
+						handleDartSubmit={handleDartSubmit}
+						handleUndoSingleDart={handleUndoSingleDart}
+						localVisitRemaining={localVisitRemaining}
+						matchFormat={matchFormat}
+					/>
+				</View>
 			);
 		}
 		if (selectedComponent === 'stats') {
