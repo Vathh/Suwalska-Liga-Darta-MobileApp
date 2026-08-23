@@ -389,6 +389,8 @@ export const getOrganizationUrl = (organizationId) =>
 	API_BASE_URL + '/organizations/' + organizationId;
 export const getLeagueUrl = (leagueId) =>
 	API_BASE_URL + '/leagues/' + leagueId;
+export const getLeagueDivisionUrl = (leagueId, divisionId) =>
+	API_BASE_URL + '/leagues/' + leagueId + '/divisions/' + divisionId;
 export const getLeagueSeasonUrl = (seasonId) =>
 	API_BASE_URL + '/league-seasons/' + seasonId;
 export const getSeasonUrl = (seasonId) =>

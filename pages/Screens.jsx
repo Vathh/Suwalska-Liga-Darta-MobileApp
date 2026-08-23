@@ -33,6 +33,7 @@ import SeasonsListScreen from '../components/Competitions/SeasonsListScreen';
 import TournamentsListScreen from '../components/Competitions/TournamentsListScreen';
 import OrganizationDetailScreen from '../components/Competitions/OrganizationDetailScreen';
 import LeagueDetailScreen from '../components/Competitions/LeagueDetailScreen';
+import LeagueDivisionDetailScreen from '../components/Competitions/LeagueDivisionDetailScreen';
 import LeagueSeasonDetailScreen from '../components/Competitions/LeagueSeasonDetailScreen';
 import SeasonDetailScreen from '../components/Competitions/SeasonDetailScreen';
 import TournamentDetailScreen from '../components/Competitions/TournamentDetailScreen';
@@ -97,6 +98,7 @@ function RozgrywkiStack() {
 			<Stack.Screen name="TournamentsList" component={TournamentsListScreen} />
 			<Stack.Screen name="OrganizationDetail" component={OrganizationDetailScreen} />
 			<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} />
+			<Stack.Screen name="LeagueDivisionDetail" component={LeagueDivisionDetailScreen} />
 			<Stack.Screen name="LeagueSeasonDetail" component={LeagueSeasonDetailScreen} />
 			<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} />
 			<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} />
@@ -125,6 +127,7 @@ function KontoStack() {
 			/>
 			<Stack.Screen name="OrganizationDetail" component={OrganizationDetailScreen} />
 			<Stack.Screen name="LeagueDetail" component={LeagueDetailScreen} />
+			<Stack.Screen name="LeagueDivisionDetail" component={LeagueDivisionDetailScreen} />
 			<Stack.Screen name="LeagueSeasonDetail" component={LeagueSeasonDetailScreen} />
 			<Stack.Screen name="SeasonDetail" component={SeasonDetailScreen} />
 			<Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} />

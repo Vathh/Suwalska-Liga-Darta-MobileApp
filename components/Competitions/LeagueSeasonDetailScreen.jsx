@@ -14,6 +14,7 @@ import { fetchCompetitionDetail } from '../../helpers/competitionsApi';
 import { getLeagueSeasonUrl } from '../../helpers/apiConfig';
 import DetailHeader from './DetailHeader';
 import CompetitionTable from './CompetitionTable';
+import CompetitionTabs from './CompetitionTabs';
 import { colors } from '../../theme/colors';
 
 function standingsColumns(allowsDraws) {
@@ -112,6 +113,27 @@ const RoundBlock = ({ round, onPlayerPress }) => {
 	);
 };
 
+const GamesListBlock = ({ games, onPlayerPress }) => {
+	const [open, setOpen] = useState(false);
+	if (!games?.length) {
+		return null;
+	}
+
+	return (
+		<View style={styles.roundWrap}>
+			<Pressable style={styles.roundHeader} onPress={() => setOpen((prev) => !prev)}>
+				<Text style={styles.roundTitle}>Lista meczów</Text>
+				<Text style={styles.roundChevron}>{open ? '▴' : '▾'}</Text>
+			</Pressable>
+			{open
+				? games.map((game) => (
+						<GameRow key={game.id} game={game} onPlayerPress={onPlayerPress} />
+					))
+				: null}
+		</View>
+	);
+};
+
 const LeagueSeasonDetailScreen = ({ navigation, route }) => {
 	const { auth } = useAuth();
 	const seasonId = route.params?.id;
@@ -119,6 +141,7 @@ const LeagueSeasonDetailScreen = ({ navigation, route }) => {
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState('');
+	const [activeDivisionId, setActiveDivisionId] = useState(null);
 
 	const load = useCallback(
 		async ({ soft } = {}) => {
@@ -162,6 +185,13 @@ const LeagueSeasonDetailScreen = ({ navigation, route }) => {
 	const organization = data?.organization;
 	const hint = season ? calendarHint(season) : null;
 	const columns = standingsColumns(Boolean(season?.allowsDraws));
+	const divisions = data?.divisions ?? [];
+	const selectedDivision =
+		divisions.find((division) => division.id === activeDivisionId) ?? divisions[0] ?? null;
+	const divisionTabs = divisions.map((division) => ({
+		key: String(division.id),
+		label: division.name,
+	}));
 
 	const openPlayer = (playerId, name) => {
 		navigation.navigate('PlayerProfile', { playerId, name });
@@ -222,23 +252,31 @@ const LeagueSeasonDetailScreen = ({ navigation, route }) => {
 						]}
 					/>
 
-					{(data?.divisions ?? []).map((division) => (
-						<View key={division.id} style={styles.division}>
-							<Text style={styles.sectionTitle}>{division.name}</Text>
+					{divisions.length > 1 ? (
+						<CompetitionTabs
+							tabs={divisionTabs}
+							activeKey={String(selectedDivision?.id ?? '')}
+							onChange={(key) => setActiveDivisionId(Number(key))}
+						/>
+					) : null}
+
+					{selectedDivision ? (
+						<View key={selectedDivision.id} style={styles.division}>
+							{divisions.length <= 1 ? (
+								<Text style={styles.sectionTitle}>{selectedDivision.name}</Text>
+							) : null}
 							<CompetitionTable
 								columns={columns}
-								rows={mapStandingRows(division.standings)}
+								rows={mapStandingRows(selectedDivision.standings)}
 								emptyText="Brak zawodników na tym szczeblu."
 								onPlayerPress={openPlayer}
 							/>
-							{(division.rounds ?? []).map((round) => (
+							{(selectedDivision.rounds ?? []).map((round) => (
 								<RoundBlock key={round.id} round={round} onPlayerPress={openPlayer} />
 							))}
-							{(division.games ?? []).map((game) => (
-								<GameRow key={game.id} game={game} onPlayerPress={openPlayer} />
-							))}
+							<GamesListBlock games={selectedDivision.games} onPlayerPress={openPlayer} />
 						</View>
-					))}
+					) : null}
 
 					{(data?.tiebreakGames ?? []).length > 0 ? (
 						<>

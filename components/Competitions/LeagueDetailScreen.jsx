@@ -145,12 +145,21 @@ const LeagueDetailScreen = ({ navigation, route }) => {
 						</Pressable>
 					) : null}
 
-					<Text style={styles.sectionTitle}>Piramida</Text>
+					<Text style={styles.sectionTitle}>Szczeble rozgrywek</Text>
 					{(data?.divisions ?? []).length === 0 ? (
 						<Text style={styles.empty}>Brak szczebli.</Text>
 					) : (
 						(data?.divisions ?? []).map((division) => (
-							<View key={division.id} style={styles.card}>
+							<Pressable
+								key={division.id}
+								style={styles.card}
+								onPress={() =>
+									navigation.navigate('LeagueDivisionDetail', {
+										leagueId,
+										divisionId: division.id,
+									})
+								}
+							>
 								<View style={styles.cardHeader}>
 									<Text style={styles.cardTitle}>
 										{division.position + 1}. {division.name}
@@ -190,7 +199,7 @@ const LeagueDetailScreen = ({ navigation, route }) => {
 										})}
 									</View>
 								)}
-							</View>
+							</Pressable>
 						))
 					)}
 
