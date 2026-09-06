@@ -173,7 +173,7 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 	}, [N, cricket56Dispatches]);
 
 	const finishMatchLocal = useCallback(
-		(winnerIndex, winnerLegsWon) => {
+		(winnerIndex, winnerLegsWon, eventLog = []) => {
 			if (matchEndedRef.current) return;
 			matchEndedRef.current = true;
 			setGameClosed(true);
@@ -186,12 +186,19 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 							? (winnerLegsWon ?? (s?.legsWon ?? 0) + 1)
 							: (s?.legsWon ?? 0),
 				}));
+				const selfIdx = players.findIndex((p) => p?.isSelf);
 				void saveCompletedTrainingGame({
 					players,
 					matchFormat,
 					gameType: 'cricket56',
 					cricket56States: states,
 					accessToken: auth?.accessToken,
+					eventLog,
+					selfExtras: {
+						score: states[selfIdx]?.score,
+						board: { score: states[selfIdx]?.score ?? 0 },
+						won: selfIdx === winnerIndex,
+					},
 				});
 				showFinished({ winnerName: name, kind: 'training' });
 			} else {
@@ -206,9 +213,10 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 			cricket56Dispatches[winnerIndex]({ type: CRICKET56_LEG_WIN });
 			const nextLegs = (cricket56StatesRef.current[winnerIndex]?.legsWon ?? 0) + 1;
 			if (nextLegs >= legsToWin) {
+				const eventLog = [...dartLogRef.current];
 				resetBoardsLocal();
 				dartLogRef.current = [];
-				finishMatchLocal(winnerIndex, nextLegs);
+				finishMatchLocal(winnerIndex, nextLegs, eventLog);
 				return;
 			}
 			resetBoardsLocal();
@@ -275,9 +283,14 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 			|| myPlayerIndex === null
 			|| myPlayerIndex === currentPlayerIndex);
 
-	const handleVisit = (points) => {
+	const handleVisit = (marksOrPoints) => {
 		if (!canInput) return;
-		const parsed = Number(points);
+		const marks = Array.isArray(marksOrPoints)
+			? marksOrPoints.map((m) => Number(m) || 0)
+			: null;
+		const parsed = marks
+			? marks.reduce((sum, m) => sum + m, 0)
+			: Number(marksOrPoints);
 		if (!Number.isInteger(parsed)) return;
 		if (syncEnabled && transport) {
 			if (!transport.assertCanInput?.(currentPlayerIndex)) return;
@@ -286,7 +299,7 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 				Alert.alert('Błąd', 'Brak playerId gracza.');
 				return;
 			}
-			submitVisit(playerId, parsed);
+			submitVisit(playerId, parsed, marks);
 			return;
 		}
 
@@ -294,7 +307,11 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 		const states = cricket56StatesRef.current;
 		dartLogRef.current.push({
 			playerIndex: idx,
+			playerId: players[idx]?.accountPlayerId ?? players[idx]?.playerId ?? idx,
+			kind: 'visit',
 			points: parsed,
+			marks,
+			currentRoundIndex: currentRoundIndex,
 			scoreBefore: states[idx].score,
 			roundIndexBefore: currentRoundIndex,
 			thrownBefore: { ...thrownThisRoundRef.current },

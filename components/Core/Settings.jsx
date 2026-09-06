@@ -14,6 +14,7 @@ const Settings = ({
   soundVolume = 1,
   setSoundVolume,
   loaded = true,
+  hideScoringMode = false,
 }) => {
   if (!loaded) {
     return (
@@ -33,6 +34,7 @@ const Settings = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.containerContent}>
+      {!hideScoringMode ? (
       <View style={styles.section}>
         <Text style={styles.label}>Sposób wprowadzania punktów (501)</Text>
         <Text style={styles.hint}>Wybierz, jak chcesz wpisywać wyniki rzutów</Text>
@@ -63,6 +65,7 @@ const Settings = ({
           </Pressable>
         </View>
       </View>
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.label}>Dźwięki gry</Text>

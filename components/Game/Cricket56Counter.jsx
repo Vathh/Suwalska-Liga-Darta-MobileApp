@@ -58,7 +58,7 @@ export default function Cricket56Counter({
 		const next = [...visitMarks, safe];
 		if (next.length >= 3) {
 			setVisitMarks([]);
-			onVisit?.(next.reduce((sum, m) => sum + m, 0));
+			onVisit?.(next);
 			return;
 		}
 		setVisitMarks(next);

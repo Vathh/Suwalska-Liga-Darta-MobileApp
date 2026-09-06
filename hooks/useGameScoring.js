@@ -514,6 +514,7 @@ export function useGameScoring({
 					closedLeg = false,
 					clientVisitId,
 					remainingBefore: remainingBeforeOverride,
+					darts = null,
 				} = params;
 
 				if (!enabled || !transport?.recordVisit) {
@@ -551,6 +552,9 @@ export function useGameScoring({
 						closedLeg,
 						bust,
 						clientVisitId: resolvedClientVisitId,
+					};
+					if (Array.isArray(darts) && darts.length > 0) {
+						payload.darts = darts;
 					};
 
 					if (transport.requiresLegId) {
@@ -649,6 +653,9 @@ export function useGameScoring({
 							closedLeg: true,
 							bust: false,
 							clientVisitId: resolvedClientVisitId,
+						};
+						if (Array.isArray(visitOpts.darts) && visitOpts.darts.length > 0) {
+							visitPayload.darts = visitOpts.darts;
 						};
 						closePayload = {
 							winnerId: player.playerId,

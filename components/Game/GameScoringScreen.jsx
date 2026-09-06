@@ -55,7 +55,7 @@ import { createAchievementHandlers } from '../../helpers/gameScoring/achievement
 import { createDartHistoryTracker } from '../../helpers/gameScoring/dartHistoryTracker';
 import { computeNextLegOpener } from '../../helpers/computeNextLegOpener';
 import { evaluatePerDartVisitAfterDart } from '../../helpers/perDartVisitRules';
-import { recordedDartsInVisit } from '../../helpers/gameScoring/visitDarts';
+import { recordedDartsInVisit, openVisitDarts } from '../../helpers/gameScoring/visitDarts';
 import {
 	countDoubleOutFromDarts,
 	mergeDoubleStats,
@@ -565,6 +565,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		foldTrainingDoubles: () => collectLegDoubleStats(),
 		matchDoubleAccRef,
 		isPerDart: isPerDartMode,
+		visitLog: visitLogRef.current,
 	});
 
 	const beginScoringBusy = useCallback((label = 'Zapisywanie wyniku…') => {
@@ -790,6 +791,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 						dartsInVisit: recordedDarts,
 						remainingBefore: visitStart,
 						clientVisitId: visitClientIdRef.current,
+						darts: openVisitDarts(dartHistoryRef.current, idx),
 					});
 					visitClientIdRef.current = null;
 					setLocalRemaining(null);
@@ -842,8 +844,9 @@ const GameScoringScreen = ({ route, navigation }) => {
 		if (syncEnabled) {
 			beginScoringBusy();
 			try {
+				const visitDarts = openVisitDarts(dartHistoryRef.current, idx);
 				markCurrentVisitCompleted(idx);
-				await submitOnlineVisitCore(visitTotal, 3);
+				await submitOnlineVisitCore(visitTotal, 3, visitDarts);
 				if (!okHandlingRef.current) {
 					playerDispatches[idx](completeCurrentVisit());
 					setLocalRemaining(null);

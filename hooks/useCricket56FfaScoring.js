@@ -138,13 +138,14 @@ export function useCricket56FfaScoring({
 	);
 
 	const submitVisit = useCallback(
-		(playerId, points) => {
+		(playerId, points, marks = null) => {
 			if (!transport?.recordVisit) return Promise.resolve();
 			return enqueueWrite(async () => {
 				try {
 					const state = await transport.recordVisit({
 						playerId,
 						points,
+						marks: Array.isArray(marks) ? marks : undefined,
 						clientVisitId: transport.newClientVisitId?.() ?? transport.newClientDartId?.(),
 					});
 					applyState(state);

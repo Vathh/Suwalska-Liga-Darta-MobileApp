@@ -33,6 +33,7 @@ export function useGameFinishedEffects({
 	foldTrainingDoubles = null,
 	matchDoubleAccRef = null,
 	isPerDart = false,
+	visitLog = null,
 }) {
 	const quickResultSentRef = useRef(false);
 	const tournamentResultSentRef = useRef(false);
@@ -105,6 +106,7 @@ export function useGameFinishedEffects({
 								: 'x01',
 			accessToken,
 			isPerDart: !!isPerDart,
+			visitLog,
 			doubleStatsByIndex: (() => {
 				foldTrainingDoubles?.();
 				return matchDoubleAccRef?.current ?? null;

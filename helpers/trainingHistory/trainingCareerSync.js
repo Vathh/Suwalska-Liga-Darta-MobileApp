@@ -1,20 +1,36 @@
 import { apiRequest } from '../apiClient';
 import { TRAINING_GAMES_API_URL } from '../apiConfig';
 import { dequeueOutbox, enqueueOutbox, peekOutbox } from '../gameScoring/scoringOutbox.js';
+import { buildX01TrainingMetrics } from '../career/buildTrainingCareerMetrics';
 
 const OUTBOX_KEY = 'training-career-outbox';
 
-function metricsFromPlayerState(playerState, doubleStats, isPerDart) {
-	const darts = Number(playerState?.totalDartsThrown ?? playerState?.dartsThrown ?? 0);
-	const points = Number(playerState?.totalPointsEarned ?? 0);
-	const tracked = !!isPerDart && (doubleStats?.attempts ?? 0) >= 0;
-	return {
-		darts_thrown: Number.isFinite(darts) ? darts : 0,
-		points: Number.isFinite(points) ? points : 0,
-		double_tracked: tracked,
-		double_attempts: tracked ? (doubleStats?.attempts ?? 0) : null,
-		double_successes: tracked ? (doubleStats?.successes ?? 0) : null,
-	};
+function metricsFromPlayerState(
+	playerState,
+	doubleStats,
+	isPerDart,
+	gameType,
+	extras,
+) {
+	if (gameType && gameType !== 'x01') {
+		return extras?.metrics ?? {
+			player_id: extras?.playerId,
+			dart_log: extras?.eventLog ?? [],
+			board: extras?.board,
+			won: extras?.won,
+			score: extras?.score,
+			bob27_mode: extras?.bob27Mode,
+			bob27_bull: extras?.bob27Bull,
+			includeBull: extras?.includeBull,
+		};
+	}
+	return buildX01TrainingMetrics(
+		playerState,
+		doubleStats,
+		isPerDart,
+		extras?.visitLog,
+		extras?.playerIndex,
+	);
 }
 
 export async function enqueueTrainingCareerSync(entry) {
@@ -54,6 +70,9 @@ export async function syncTrainingCareerIfNeeded({
 	doubleStatsByIndex,
 	isPerDart,
 	accessToken,
+	eventLog = null,
+	visitLog = null,
+	selfExtras = null,
 }) {
 	const idx = (players ?? []).findIndex(
 		(p) => p?.isSelf && p?.accountPlayerId != null,
@@ -61,20 +80,30 @@ export async function syncTrainingCareerIfNeeded({
 	if (idx < 0 || !accessToken) {
 		return;
 	}
+	const extras = {
+		playerIndex: idx,
+		visitLog,
+		eventLog,
+		playerId: players[idx]?.accountPlayerId ?? players[idx]?.playerId,
+		...(selfExtras ?? {}),
+	};
+	const metrics = metricsFromPlayerState(
+		playerStates?.[idx],
+		doubleStatsByIndex?.[idx],
+		isPerDart,
+		gameType || 'x01',
+		extras,
+	);
+	if (!metrics) {
+		return;
+	}
 	const payload = {
 		clientUuid,
 		gameType: gameType || 'x01',
 		completedAt,
 		format: matchFormat ?? null,
-		metrics: metricsFromPlayerState(
-			playerStates?.[idx],
-			doubleStatsByIndex?.[idx],
-			isPerDart,
-		),
+		metrics,
 	};
-	if ((payload.metrics.darts_thrown ?? 0) <= 0 && !payload.metrics.double_tracked) {
-		return;
-	}
 	const { ok } = await apiRequest(TRAINING_GAMES_API_URL, {
 		method: 'POST',
 		accessToken,

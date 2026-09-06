@@ -51,7 +51,7 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 		setSoundVolume,
 		loaded: gameSettingsLoaded,
 	} = useGameSettings();
-	const isPerDart = scoringMode === SCORING_MODES.PER_DART;
+	const isPerDart = true;
 	const [selectedComponent, setSelectedComponent] = useState('counter');
 	const gameCtx = useMemo(
 		() => resolveGameContext(route.params, auth),
@@ -86,6 +86,7 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 	const pendingCheckoutRef = useRef(null);
 	const visitStartRef = useRef(null);
 	const visitTotalRef = useRef(0);
+	const visitDartsRef = useRef([]);
 	const dartLogRef = useRef([]);
 	const legOpenerIndexRef = useRef(0);
 	const matchEndedRef = useRef(false);
@@ -341,7 +342,9 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 			dartsInVisit,
 			bust,
 			checkout,
+			darts: visitDartsRef.current.length ? [...visitDartsRef.current] : undefined,
 		});
+		visitDartsRef.current = [];
 		setCurrentResult(0);
 		setResultEdited(false);
 		setLocalVisitRemaining(null);
@@ -401,6 +404,12 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 		visitStartRef._darts = dartsCount;
 		const visitStart = visitStartRef.current ?? board?.remaining ?? 61;
 		const visitTotal = visitTotalRef.current;
+		visitDartsRef.current.push({
+			label: dartLabel ?? null,
+			points,
+			remainingBefore: visitStart - (visitTotal - points),
+			bust: false,
+		});
 
 		const { bust, checkout } = evaluatePerDartVisitAfterDart(
 			visitStart,
@@ -408,6 +417,8 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 			dartLabel,
 		);
 		if (bust) {
+			const last = visitDartsRef.current[visitDartsRef.current.length - 1];
+			if (last) last.bust = true;
 			finishSumVisit(0, dartsCount, true, false);
 			visitStartRef._darts = 0;
 			return 'ended';
@@ -432,6 +443,7 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 			visitStartRef.current = null;
 			visitTotalRef.current = 0;
 			visitStartRef._darts = 0;
+			visitDartsRef.current = [];
 			setLocalVisitRemaining(null);
 			return;
 		}
@@ -479,6 +491,7 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 					soundVolume={soundVolume}
 					setSoundVolume={setSoundVolume}
 					loaded={gameSettingsLoaded}
+					hideScoringMode
 				/>
 			);
 		}

@@ -21,6 +21,9 @@ export async function saveCompletedTrainingGame({
 	accessToken = null,
 	isPerDart = false,
 	doubleStatsByIndex = null,
+	eventLog = null,
+	visitLog = null,
+	selfExtras = null,
 }) {
 	const game = buildTrainingGameRecord({
 		players,
@@ -45,6 +48,9 @@ export async function saveCompletedTrainingGame({
 		doubleStatsByIndex,
 		isPerDart,
 		accessToken,
+		eventLog,
+		visitLog,
+		selfExtras,
 	});
 	return game;
 }
