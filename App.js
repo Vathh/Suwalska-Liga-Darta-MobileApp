@@ -1,9 +1,10 @@
 import 'react-native-gesture-handler';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initTheme } from './theme/colors';
 import AppIntro from './components/Common/AppIntro';
+import { IntroOverlayProvider } from './context/IntroOverlayContext';
 
 // pusher-js (web build) oczekuje `self` — w RN jest tylko `global`
 if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
@@ -13,19 +14,37 @@ if (typeof global !== 'undefined' && typeof global.self === 'undefined') {
 /**
  * Ładuje motyw z AsyncStorage PRZED require AppShell / Screens,
  * żeby StyleSheet.create dostał właściwe hex z aktywnej palety.
- * Potem pokazuje intro z animowanym logotypem.
+ * Potem pokazuje intro z animowanym logotypem i wlotem do headera.
  */
 export default function App() {
 	const [ready, setReady] = useState(false);
+	const [drawDone, setDrawDone] = useState(false);
+	const [flyDone, setFlyDone] = useState(false);
 	const [introDone, setIntroDone] = useState(false);
 
 	useEffect(() => {
 		initTheme().finally(() => setReady(true));
 	}, []);
 
-	const handleIntroDone = useCallback(() => {
+	const handleDrawComplete = useCallback(() => {
+		setDrawDone(true);
+	}, []);
+
+	const handleFlyComplete = useCallback(() => {
+		setFlyDone(true);
+	}, []);
+
+	const handleRevealComplete = useCallback(() => {
 		setIntroDone(true);
 	}, []);
+
+	useEffect(() => {
+		if (!flyDone || introDone) {
+			return undefined;
+		}
+		const timer = setTimeout(() => setIntroDone(true), 2000);
+		return () => clearTimeout(timer);
+	}, [flyDone, introDone]);
 
 	if (!ready) {
 		return (
@@ -35,24 +54,45 @@ export default function App() {
 		);
 	}
 
-	if (!introDone) {
-		return <AppIntro onDone={handleIntroDone} />;
-	}
-
 	const AppShell = require('./AppShell').default;
 
 	return (
-		<SafeAreaProvider>
-			<AppShell />
-		</SafeAreaProvider>
+		<IntroOverlayProvider
+			introActive={!introDone}
+			revealRest={flyDone && !introDone}
+			onRevealComplete={handleRevealComplete}
+		>
+			<SafeAreaProvider>
+				<View style={bootStyles.root}>
+					{drawDone ? <AppShell /> : null}
+					{!introDone ? (
+						<View style={bootStyles.introOverlay}>
+							<AppIntro
+								onDrawComplete={handleDrawComplete}
+								onFlyComplete={handleFlyComplete}
+							/>
+						</View>
+					) : null}
+				</View>
+			</SafeAreaProvider>
+		</IntroOverlayProvider>
 	);
 }
 
-const bootStyles = {
+const bootStyles = StyleSheet.create({
 	boot: {
 		flex: 1,
 		backgroundColor: '#141418',
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
-};
+	root: {
+		flex: 1,
+		backgroundColor: '#141418',
+	},
+	introOverlay: {
+		...StyleSheet.absoluteFillObject,
+		zIndex: 50,
+		elevation: 50,
+	},
+});

@@ -51,6 +51,7 @@ const headerOptions = {
 	headerStyle: { backgroundColor: colors.bg },
 	headerTintColor: colors.accent,
 	headerTitleAlign: 'left',
+	headerTitleContainerStyle: { paddingHorizontal: 0 },
 };
 
 function tabIcon(name) {
