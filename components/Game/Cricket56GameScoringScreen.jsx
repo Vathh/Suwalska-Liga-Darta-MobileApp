@@ -191,6 +191,7 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 					matchFormat,
 					gameType: 'cricket56',
 					cricket56States: states,
+					accessToken: auth?.accessToken,
 				});
 				showFinished({ winnerName: name, kind: 'training' });
 			} else {

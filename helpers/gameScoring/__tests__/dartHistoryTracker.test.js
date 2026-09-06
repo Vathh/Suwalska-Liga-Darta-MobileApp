@@ -199,6 +199,28 @@ function testHasActivePerDartVisitFalseWhenClean() {
 	assert(hasActivePerDartVisit() === false, 'inactive with no state');
 }
 
+function testReopenLastCompletedVisitDartUnmarksRemaining() {
+	const { pushDartToHistory, markCurrentVisitCompleted, reopenLastCompletedVisitDart, getRecentVisitDartPoints, refs } =
+		makeTracker();
+	pushDartToHistory(0, 20, 'S20');
+	pushDartToHistory(0, 15, 'S15');
+	pushDartToHistory(0, 10, 'S10');
+	markCurrentVisitCompleted(0);
+
+	const result = reopenLastCompletedVisitDart(0);
+	assert(result != null, 'reopen returns result');
+	assert(result.undonePoints === 10, 'undone last dart 10');
+	assert(result.remainingPoints === 35, '20+15 remaining');
+	assert(result.remainingCount === 2, 'two darts still in visit');
+	assert(refs.dartHistoryRef.current.length === 2, 'last dart removed from history');
+	assert(
+		refs.dartHistoryRef.current.every((e) => !e.completedVisit),
+		'remaining darts are in progress',
+	);
+	const remaining = getRecentVisitDartPoints(0);
+	assert(remaining[0] === 20 && remaining[1] === 15, 'recent points are 20, 15');
+}
+
 export function runDartHistoryTrackerTests() {
 	testPushVisitLogWithDarts();
 	testPushVisitLogWithoutDartsIsNull();
@@ -215,4 +237,5 @@ export function runDartHistoryTrackerTests() {
 	testHasActivePerDartVisitTrueWhenPointsAccrued();
 	testHasActivePerDartVisitTrueWhenLocalRemainingSet();
 	testHasActivePerDartVisitFalseWhenClean();
+	testReopenLastCompletedVisitDartUnmarksRemaining();
 }

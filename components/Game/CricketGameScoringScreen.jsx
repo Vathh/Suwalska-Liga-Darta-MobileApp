@@ -175,6 +175,7 @@ export default function CricketGameScoringScreen({ route, navigation }) {
 					matchFormat,
 					gameType: 'cricket',
 					cricketStates: states,
+					accessToken: auth?.accessToken,
 				});
 				showFinished({ winnerName: name, kind: 'training' });
 			} else {

@@ -218,6 +218,7 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 					matchFormat,
 					gameType: 'catch40',
 					catch40States: states,
+					accessToken: auth?.accessToken,
 				});
 				showFinished({ winnerName: name, kind: 'training' });
 			} else {

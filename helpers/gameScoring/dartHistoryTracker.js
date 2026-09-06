@@ -53,13 +53,22 @@ export function createDartHistoryTracker({
 		playerDispatches[idx](resetVisitDartLabels());
 	};
 
-	const pushDartToHistory = (playerIndex, points, label) => {
+	const pushDartToHistory = (playerIndex, points, label, remainingBefore = null) => {
 		dartHistoryRef.current.push({
 			playerIndex,
 			points,
 			label,
+			remainingBefore,
 			completedVisit: false,
+			bust: false,
 		});
+	};
+
+	const markLastDartBust = () => {
+		const hist = dartHistoryRef.current;
+		if (hist.length > 0) {
+			hist[hist.length - 1].bust = true;
+		}
 	};
 
 	const popDartHistory = (count = 1) => {
@@ -85,6 +94,43 @@ export function createDartHistoryTracker({
 		}
 	};
 
+	/**
+	 * Cofnięcie ostatniej lotki już zapisanej wizyty: zdejmuje ją z historii
+	 * i odznacza pozostałe lotki tej wizyty jako w toku.
+	 * @returns {{ undonePoints: number, remainingPoints: number, remainingCount: number } | null}
+	 */
+	const reopenLastCompletedVisitDart = (playerIndex) => {
+		const hist = dartHistoryRef.current;
+		let lastIdx = -1;
+		for (let i = hist.length - 1; i >= 0; i -= 1) {
+			if (hist[i].playerIndex === playerIndex && hist[i].completedVisit) {
+				lastIdx = i;
+				break;
+			}
+		}
+		if (lastIdx < 0) {
+			return null;
+		}
+		const [undone] = hist.splice(lastIdx, 1);
+		let unmarked = 0;
+		for (let i = hist.length - 1; i >= 0 && unmarked < 2; i -= 1) {
+			if (hist[i].playerIndex !== playerIndex) {
+				continue;
+			}
+			if (!hist[i].completedVisit) {
+				break;
+			}
+			hist[i].completedVisit = false;
+			unmarked += 1;
+		}
+		const remaining = getRecentVisitDartPoints(playerIndex);
+		return {
+			undonePoints: undone.points,
+			remainingPoints: remaining.reduce((sum, p) => sum + p, 0),
+			remainingCount: remaining.length,
+		};
+	};
+
 	const hasActivePerDartVisit = () =>
 		isPerDartMode() &&
 		(visitClientIdRef.current != null ||
@@ -98,6 +144,8 @@ export function createDartHistoryTracker({
 		pushDartToHistory,
 		popDartHistory,
 		markCurrentVisitCompleted,
+		reopenLastCompletedVisitDart,
 		hasActivePerDartVisit,
+		markLastDartBust,
 	};
 }

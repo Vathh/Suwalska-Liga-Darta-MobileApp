@@ -24,6 +24,14 @@ import { tournamentAfterLegClose } from './fixtures/tournamentAfterLegClose.js';
 import { ffaAfterVisit } from './fixtures/ffaAfterVisit.js';
 import { ffaPartialVisit } from './fixtures/ffaPartialVisit.js';
 import { evaluatePerDartVisitAfterDart } from '../../perDartVisitRules.js';
+import { countDoubleOutFromDarts } from '../doubleOutStats.js';
+import { recordedDartsInVisit } from '../visitDarts.js';
+import {
+	createInitialPlayerResultState,
+	undoLastVisit,
+	updateStats,
+} from '../../reducers/playerResultActions.js';
+import { playerResultReducer } from '../../reducers/playerResultReducer.js';
 import { inferCurrentPlayerIndex } from '../inferCurrentPlayerIndex.js';
 import {
 	applyLegWinScores,
@@ -470,6 +478,50 @@ function testCheckoutLegAverageIncludesClosingVisit() {
 	);
 }
 
+function testRecordedDartsInVisit() {
+	assert(recordedDartsInVisit({ bust: true, physicalDarts: 1 }) === 3, 'bust dart 1 counts as 3');
+	assert(recordedDartsInVisit({ bust: true, physicalDarts: 2 }) === 3, 'bust dart 2 counts as 3');
+	assert(recordedDartsInVisit({ bust: false, physicalDarts: 1 }) === 1, 'checkout dart 1 stays 1');
+	assert(recordedDartsInVisit({ bust: false, physicalDarts: 3 }) === 3, 'full visit is 3');
+}
+
+function testPerDartUndoThenCorrectThirdDartKeeps27() {
+	let state = createInitialPlayerResultState(501);
+	state = { ...state, dartsThrown: 24, totalDartsThrown: 24 };
+	state = playerResultReducer(state, updateStats(45));
+	assert(state.dartsThrown === 27, '20+15+10 adds 3 darts');
+	assert(state.score === 456, '45 off 501');
+	state = playerResultReducer(state, undoLastVisit(45));
+	assert(state.dartsThrown === 24, 'undo visit rolls back all 3 darts');
+	assert(state.score === 501, 'remaining restored');
+	state = playerResultReducer(state, updateStats(50));
+	assert(state.dartsThrown === 27, 'corrected visit still 27 darts');
+	assert(state.score === 451, '20+15+15 = 50');
+}
+
+function testBustAddsThreeDarts() {
+	let state = createInitialPlayerResultState(501);
+	state = { ...state, dartsThrown: 27, totalDartsThrown: 27, score: 16 };
+	state = playerResultReducer(state, updateStats(0, 3));
+	assert(state.dartsThrown === 30, 'bust pads visit to 3 darts');
+	assert(state.score === 16, 'bust does not change remaining');
+	assert(state.totalPointsEarned === 0, 'bust scores 0');
+}
+
+function testDoubleOutStats() {
+	const counted = countDoubleOutFromDarts([
+		{ remainingBefore: 58, label: '18', points: 18 },
+		{ remainingBefore: 40, label: '0', points: 0 },
+		{ remainingBefore: 40, label: 'D20', points: 40 },
+	]);
+	assert(counted.attempts === 2 && counted.successes === 1, '58→18 then miss then D20 is 1/2');
+
+	const bust = countDoubleOutFromDarts([
+		{ remainingBefore: 32, label: 'T20', points: 60, bust: true },
+	]);
+	assert(bust.attempts === 1 && bust.successes === 0, 'bust on double is a miss');
+}
+
 function testPerDartBustRules() {
 	const overshoot = evaluatePerDartVisitAfterDart(24, 60, 'T20');
 	assert(overshoot.bust && !overshoot.checkout, 'T20 on 24 is bust');
@@ -588,6 +640,10 @@ const tests = [
 	['ffa partial visit sync', testApplyFfaPartialVisitPreservesLocalLegScores],
 	['unified API payload', testUnifiedApiPayload],
 	['per-dart bust rules', testPerDartBustRules],
+	['double-out stats', testDoubleOutStats],
+	['recorded darts in visit', testRecordedDartsInVisit],
+	['per-dart undo third dart keeps 27', testPerDartUndoThenCorrectThirdDartKeeps27],
+	['bust adds three darts', testBustAddsThreeDarts],
 	['infer advances after bust', testInferAdvancesAfterBust],
 	['offline multi-set scoring', testMatchFormatOfflineScoring],
 	['scoring request error retryable', testScoringRequestErrorRetryable],

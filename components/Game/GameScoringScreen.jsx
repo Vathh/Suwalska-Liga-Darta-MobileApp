@@ -19,7 +19,6 @@ import {
   reopenLastVisit,
 	resetVisitDartLabels,
 	undo,
-	undoCommittedVisitDart,
 	undoLastVisit,
 	undoSingleDart,
 } from '../../helpers/reducers/playerResultActions';
@@ -56,6 +55,11 @@ import { createAchievementHandlers } from '../../helpers/gameScoring/achievement
 import { createDartHistoryTracker } from '../../helpers/gameScoring/dartHistoryTracker';
 import { computeNextLegOpener } from '../../helpers/computeNextLegOpener';
 import { evaluatePerDartVisitAfterDart } from '../../helpers/perDartVisitRules';
+import { recordedDartsInVisit } from '../../helpers/gameScoring/visitDarts';
+import {
+	countDoubleOutFromDarts,
+	mergeDoubleStats,
+} from '../../helpers/gameScoring/doubleOutStats';
 import { playCheckoutWinSound, playClick, playGameOn, playVisitScore } from '../../helpers/gameSounds';
 import { buildFfaPresenceBannerMessages } from '../../helpers/ffaPresenceMessages';
 import { normalizeMatchFormat } from '../../helpers/matchFormat/matchFormat';
@@ -308,7 +312,9 @@ const GameScoringScreen = ({ route, navigation }) => {
 		pushDartToHistory,
 		popDartHistory,
 		markCurrentVisitCompleted,
+		reopenLastCompletedVisitDart,
 		hasActivePerDartVisit,
+		markLastDartBust,
 	} = createDartHistoryTracker({
 		dartHistoryRef,
 		visitLogRef,
@@ -368,6 +374,25 @@ const GameScoringScreen = ({ route, navigation }) => {
 		}
 	}, []);
 
+	const matchDoubleAccRef = useRef([]);
+
+	const collectLegDoubleStats = () => {
+		const map = {};
+		players.forEach((p, i) => {
+			const counted = countDoubleOutFromDarts(
+				dartHistoryRef.current.filter((d) => d.playerIndex === i),
+			);
+			if (p.playerId != null) {
+				map[p.playerId] = counted;
+			}
+			matchDoubleAccRef.current[i] = mergeDoubleStats(
+				matchDoubleAccRef.current[i],
+				counted,
+			);
+		});
+		return map;
+	};
+
 	const gameScoring = useGameScoring({
 		enabled: syncEnabled && !gameClosed,
 		transport,
@@ -386,6 +411,16 @@ const GameScoringScreen = ({ route, navigation }) => {
 		onStateLoaded: handleScoringStateLoaded,
 		onMatchFormat: handleSyncedMatchFormat,
 		reloadKey,
+		getCloseLegDoubleStats: () => {
+			const map = {};
+			players.forEach((p, i) => {
+				if (p.playerId == null) return;
+				map[p.playerId] = countDoubleOutFromDarts(
+					dartHistoryRef.current.filter((d) => d.playerIndex === i),
+				);
+			});
+			return map;
+		},
 	});
 
 	const { ffaPresence, syncPending } = gameScoring;
@@ -527,6 +562,9 @@ const GameScoringScreen = ({ route, navigation }) => {
 		activeGame,
 		N,
 		onFinished: showMatchFinished,
+		foldTrainingDoubles: () => collectLegDoubleStats(),
+		matchDoubleAccRef,
+		isPerDart: isPerDartMode,
 	});
 
 	const beginScoringBusy = useCallback((label = 'Zapisywanie wyniku…') => {
@@ -559,6 +597,19 @@ const GameScoringScreen = ({ route, navigation }) => {
 	};
 
 	const advanceToNextLegOpener = useCallback(() => {
+		const byIndex = {};
+		for (const dart of dartHistoryRef.current) {
+			const i = dart.playerIndex;
+			byIndex[i] ??= [];
+			byIndex[i].push(dart);
+		}
+		Object.keys(byIndex).forEach((key) => {
+			const i = Number(key);
+			matchDoubleAccRef.current[i] = mergeDoubleStats(
+				matchDoubleAccRef.current[i],
+				countDoubleOutFromDarts(byIndex[i]),
+			);
+		});
 		dartHistoryRef.current = [];
 		visitLogRef.current = [];
 		visitPointsTotalRef.current = 0;
@@ -677,6 +728,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		getCurrentResult: () => currentResult,
 		beginScoringBusy,
 		endScoringBusy,
+		dartHistoryRef,
 	});
 
 	const {
@@ -696,7 +748,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 
 		const idx = currentPlayerIndexRef.current;
 
-		if (dartIndex === 0) {
+		if (dartIndex === 0 && visitStartScoreRef.current == null) {
 			const visitStart = playerStates[idx]?.score ?? startingScore;
 			visitStartScoreRef.current = visitStart;
 			visitPointsTotalRef.current = 0;
@@ -708,7 +760,9 @@ const GameScoringScreen = ({ route, navigation }) => {
 		}
 
 		visitPointsTotalRef.current += points;
-		pushDartToHistory(idx, points, dartLabel);
+		const remainingBeforeThisDart = (visitStartScoreRef.current ?? playerStates[idx]?.score ?? startingScore)
+			- (visitPointsTotalRef.current - points);
+		pushDartToHistory(idx, points, dartLabel, remainingBeforeThisDart);
 
 		const visitStart = visitStartScoreRef.current ?? playerStates[idx]?.score ?? startingScore;
 		const visitTotal = visitPointsTotalRef.current;
@@ -720,7 +774,12 @@ const GameScoringScreen = ({ route, navigation }) => {
 		);
 
 		if (bust) {
+			markLastDartBust();
 			playVisitScore(0);
+			const recordedDarts = recordedDartsInVisit({
+				bust: true,
+				physicalDarts: dartsInVisit,
+			});
 			if (syncEnabled) {
 				beginScoringBusy();
 				try {
@@ -728,7 +787,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 						playerIndex: idx,
 						visitScore: 0,
 						bust: true,
-						dartsInVisit,
+						dartsInVisit: recordedDarts,
 						remainingBefore: visitStart,
 						clientVisitId: visitClientIdRef.current,
 					});
@@ -827,6 +886,52 @@ const GameScoringScreen = ({ route, navigation }) => {
 					}
 					return;
 				}
+
+				const playerIndex = last.playerIndex;
+				const remainingAfterVisit = playerStates[playerIndex]?.score ?? startingScore;
+				const reopened = reopenLastCompletedVisitDart(playerIndex);
+				if (reopened) {
+					const visitStart =
+						remainingAfterVisit +
+						reopened.undonePoints +
+						reopened.remainingPoints;
+					visitStartScoreRef.current = visitStart;
+					visitPointsTotalRef.current = reopened.remainingPoints;
+					setLocalRemaining(visitStart - reopened.remainingPoints);
+					if (syncEnabled) {
+						visitClientIdRef.current = newClientVisitId();
+					}
+					const needsReopen =
+						(playerStates[playerIndex]?.currentVisitDartLabels?.length ?? 0) === 0 &&
+						(playerStates[playerIndex]?.lastVisitDartLabels?.length ?? 0) > 0;
+					if (needsReopen) {
+						playerDispatches[playerIndex](reopenLastVisit());
+					}
+					playerDispatches[playerIndex](popDartLabel());
+					currentPlayerIndexRef.current = playerIndex;
+					setCurrentPlayerIndex(playerIndex);
+
+					if (syncEnabled) {
+						void gameScoring.undoVisit();
+						return;
+					}
+
+					const fullVisitScore =
+						reopened.undonePoints + reopened.remainingPoints;
+					playerDispatches[playerIndex](undoLastVisit(fullVisitScore));
+					const log = visitLogRef.current;
+					const logLast = log[log.length - 1];
+					if (logLast && !logLast.bust && logLast.darts?.length > 0) {
+						logLast.darts.pop();
+						logLast.visitScore = reopened.remainingPoints;
+						if (logLast.darts.length === 0) {
+							log.pop();
+						}
+					} else if (logLast?.bust) {
+						log.pop();
+					}
+					return;
+				}
 			}
 		}
 
@@ -849,6 +954,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		const last = log[log.length - 1];
 
 		if (last.bust) {
+			playerDispatches[last.playerIndex](undoLastVisit(0));
 			log.pop();
 			currentPlayerIndexRef.current = last.playerIndex;
 			setCurrentPlayerIndex(last.playerIndex);
@@ -868,14 +974,17 @@ const GameScoringScreen = ({ route, navigation }) => {
 			if (needsReopen) {
 				playerDispatches[last.playerIndex](reopenLastVisit());
 			}
-			playerDispatches[last.playerIndex](undoCommittedVisitDart(points));
+			playerDispatches[last.playerIndex](undoLastVisit(last.visitScore + points));
 			playerDispatches[last.playerIndex](popDartLabel());
+			visitStartScoreRef.current =
+				(playerStates[last.playerIndex]?.score ?? startingScore) + last.visitScore + points;
+			visitPointsTotalRef.current = last.visitScore;
+			setLocalRemaining(visitStartScoreRef.current - last.visitScore);
 			if (last.darts.length === 0) {
 				log.pop();
 			}
 			currentPlayerIndexRef.current = last.playerIndex;
 			setCurrentPlayerIndex(last.playerIndex);
-			setLocalRemaining(null);
 			return;
 		}
 
@@ -926,7 +1035,9 @@ const GameScoringScreen = ({ route, navigation }) => {
 				score,
 				darts,
 				visitOpts,
-			);
+			).then(() => {
+				dartHistoryRef.current = [];
+			});
 			return;
 		}
 		offlineVisit.handleOfflineCheckout(idx, visitScore, visitOpts, checkoutDart);
@@ -971,6 +1082,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 					dartNumber,
 					visitOpts,
 				);
+				dartHistoryRef.current = [];
 				visitClientIdRef.current = null;
 				setLocalRemaining(null);
 				setCurrentResult(0);

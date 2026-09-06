@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
 import { playCheckoutWinSound, playVisitScore } from '../gameSounds';
 import { resetVisitDartLabels } from '../reducers/playerResultActions';
+import { recordedDartsInVisit } from './visitDarts';
 
 /**
  * Online scoring visit/checkout — zależy od `gameScoring` (transport).
@@ -36,6 +37,7 @@ export function createOnlineVisitFlow(deps) {
 		getCurrentResult,
 		beginScoringBusy,
 		endScoringBusy,
+		dartHistoryRef,
 	} = deps;
 
 	const recordQfIfNeeded = (player, idx, checkoutDarts) => {
@@ -106,6 +108,9 @@ export function createOnlineVisitFlow(deps) {
 										dartsInVisit,
 										visitOpts,
 									);
+									if (dartHistoryRef) {
+										dartHistoryRef.current = [];
+									}
 									visitClientIdRef.current = null;
 									okHandlingRef.current = false;
 									setLocalRemaining(null);
@@ -140,7 +145,10 @@ export function createOnlineVisitFlow(deps) {
 				playerIndex: idx,
 				visitScore: 0,
 				bust: true,
-				dartsInVisit,
+				dartsInVisit: recordedDartsInVisit({
+					bust: true,
+					physicalDarts: dartsInVisit,
+				}),
 				...visitOpts,
 			});
 		} else {
@@ -214,6 +222,9 @@ export function createOnlineVisitFlow(deps) {
 								dartsInVisit,
 								visitOpts,
 							);
+							if (dartHistoryRef) {
+								dartHistoryRef.current = [];
+							}
 							visitClientIdRef.current = null;
 							visitPointsTotalRef.current = 0;
 							visitStartScoreRef.current = null;

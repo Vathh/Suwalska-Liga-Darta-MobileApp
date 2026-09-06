@@ -180,6 +180,7 @@ export default function AtcGameScoringScreen({ route, navigation }) {
 					matchFormat,
 					gameType: 'atc',
 					atcStates: states,
+					accessToken: auth?.accessToken,
 				});
 				showFinished({ winnerName: name, kind: 'training' });
 			} else {

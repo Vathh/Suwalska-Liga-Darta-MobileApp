@@ -1,9 +1,12 @@
 import { buildTrainingGameRecord } from './buildTrainingGameRecord';
 import { saveTrainingGame } from './persistTrainingHistory';
 import { applyTrainingGameToTempPlayerStats } from './persistTempPlayerStats';
+import { syncTrainingCareerIfNeeded } from './trainingCareerSync';
+import { newClientVisitId } from '../gameScoring/newClientVisitId';
 
 /**
  * Zapisuje zakończony trening lokalnie (historia + kariera graczy z bazy).
+ * Slot JA (isSelf) idzie na konto — kumple lokalni nigdy.
  */
 export async function saveCompletedTrainingGame({
 	players,
@@ -15,6 +18,9 @@ export async function saveCompletedTrainingGame({
 	atcStates = null,
 	catch40States = null,
 	cricket56States = null,
+	accessToken = null,
+	isPerDart = false,
+	doubleStatsByIndex = null,
 }) {
 	const game = buildTrainingGameRecord({
 		players,
@@ -29,5 +35,16 @@ export async function saveCompletedTrainingGame({
 	});
 	await saveTrainingGame(game);
 	await applyTrainingGameToTempPlayerStats(game);
+	await syncTrainingCareerIfNeeded({
+		players,
+		playerStates,
+		matchFormat,
+		gameType: game.gameType,
+		clientUuid: newClientVisitId(),
+		completedAt: game.playedAt,
+		doubleStatsByIndex,
+		isPerDart,
+		accessToken,
+	});
 	return game;
 }

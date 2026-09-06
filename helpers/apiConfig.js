@@ -403,3 +403,4 @@ export const getTournamentUrl = (tournamentId) =>
 export const PUSH_TOKENS_API_URL = API_BASE_URL + '/push-tokens';
 
 export const ME_COMPETITIONS_URL = API_BASE_URL + '/me/competitions';
+export const TRAINING_GAMES_API_URL = API_BASE_URL + '/training/games';

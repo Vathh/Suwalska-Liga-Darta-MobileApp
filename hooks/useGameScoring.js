@@ -53,6 +53,7 @@ export function useGameScoring({
 	reloadKey = null,
 	onStateLoaded = null,
 	onMatchFormat = null,
+	getCloseLegDoubleStats = null,
 }) {
 	const currentLegIdRef = useRef(null);
 	const lastStateKeyRef = useRef('');
@@ -68,7 +69,8 @@ export function useGameScoring({
 	const flushInFlightRef = useRef(false);
 	const [wsHealthy, setWsHealthy] = useState(false);
 	const [ffaPresence, setFfaPresence] = useState(null);
-	const [syncPending, setSyncPending] = useState(false);
+	const getCloseLegDoubleStatsRef = useRef(getCloseLegDoubleStats);
+	getCloseLegDoubleStatsRef.current = getCloseLegDoubleStats;
 
 	/** Aktualne propsy scoringu — unikamy nowej referencji loadState co render (np. playerDispatches.slice). */
 	const scoringSyncRef = useRef({});
@@ -463,13 +465,15 @@ export function useGameScoring({
 	const buildCloseLegPlayers = useCallback(
 		(winnerPlayerId, checkoutDart) => {
 			const tracked = !!isPerDartMode;
+			const statsMap = getCloseLegDoubleStatsRef.current?.() ?? null;
 			return players.slice(0, N).map((p) => {
 				const isWinner = p.playerId === winnerPlayerId;
+				const stats = p.playerId != null ? statsMap?.[p.playerId] : null;
 				return {
 					playerId: p.playerId,
 					doubleTracked: tracked,
-					doubleAttempts: null,
-					doubleSuccesses: null,
+					doubleAttempts: tracked ? (stats?.attempts ?? 0) : null,
+					doubleSuccesses: tracked ? (stats?.successes ?? 0) : null,
 					legAverage: null,
 					firstNineAverage: null,
 					highestVisit: null,

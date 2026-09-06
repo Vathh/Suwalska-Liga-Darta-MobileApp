@@ -1,4 +1,4 @@
-import { APPEND_DART_LABEL, COMPLETE_CURRENT_VISIT, LEG_LOSE, LEG_WIN, POP_DART_LABEL, REOPEN_LAST_VISIT, RESET_LEGS_IN_SET, RESET_VISIT_DART_LABELS, SYNC_FROM_SERVER, UNDO, UNDO_COMMITTED_VISIT_DART, UNDO_LAST_VISIT, UNDO_SINGLE_DART, UPDATE_STATS } from "./playerResultActions";
+import { APPEND_DART_LABEL, COMPLETE_CURRENT_VISIT, LEG_LOSE, LEG_WIN, POP_DART_LABEL, REOPEN_LAST_VISIT, RESET_LEGS_IN_SET, RESET_VISIT_DART_LABELS, SYNC_FROM_SERVER, UNDO, UNDO_COMMITTED_VISIT_DART, UNDO_LAST_VISIT, UNDO_SINGLE_DART, UPDATE_STATS } from "./playerResultActions.js";
 import { applyLegWinScores } from "../matchFormat/matchFormatScoring.js";
 
 function legAverageFromScore(startingScore, score, dartsThrown) {
@@ -138,12 +138,15 @@ export const playerResultReducer = (state, action) => {
     }
     case UPDATE_STATS: {
       const startingScore = state.startingScore ?? 501;
+      const darts = action.darts ?? 3;
       const score = state.score - action.points;
-      const totalDartsThrown = state.totalDartsThrown + 3;
+      const totalDartsThrown = state.totalDartsThrown + darts;
       const totalPointsEarned = state.totalPointsEarned + action.points;
-      const matchAverage = ((totalPointsEarned/totalDartsThrown) * 3).toFixed(2);
+      const matchAverage = totalDartsThrown > 0
+        ? ((totalPointsEarned/totalDartsThrown) * 3).toFixed(2)
+        : 0;
 
-      const dartsThrown = state.dartsThrown + 3;
+      const dartsThrown = state.dartsThrown + darts;
       const currentLegScores = [...state.currentLegScores, action.points];
       const currentLegAverage = legAverageFromScore(startingScore, score, dartsThrown);
 

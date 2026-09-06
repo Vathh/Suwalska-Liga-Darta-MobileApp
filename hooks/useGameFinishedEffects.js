@@ -30,6 +30,9 @@ export function useGameFinishedEffects({
 	activeGame,
 	N,
 	onFinished,
+	foldTrainingDoubles = null,
+	matchDoubleAccRef = null,
+	isPerDart = false,
 }) {
 	const quickResultSentRef = useRef(false);
 	const tournamentResultSentRef = useRef(false);
@@ -100,6 +103,12 @@ export function useGameFinishedEffects({
 							: matchFormat?.gameType === 'cricket56'
 								? 'cricket56'
 								: 'x01',
+			accessToken,
+			isPerDart: !!isPerDart,
+			doubleStatsByIndex: (() => {
+				foldTrainingDoubles?.();
+				return matchDoubleAccRef?.current ?? null;
+			})(),
 		});
 		onFinished?.({
 			winnerName: players[winnerIdx]?.name,
@@ -114,6 +123,10 @@ export function useGameFinishedEffects({
 		players,
 		setGameClosed,
 		onFinished,
+		accessToken,
+		isPerDart,
+		foldTrainingDoubles,
+		matchDoubleAccRef,
 	]);
 
 	useEffect(() => {

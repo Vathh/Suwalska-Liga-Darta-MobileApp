@@ -9,6 +9,7 @@ import {
 } from '../reducers/playerResultActions';
 import { playCheckoutWinSound, playVisitScore } from '../gameSounds';
 import { wouldCloseSet } from '../matchFormat/matchFormatScoring';
+import { recordedDartsInVisit } from './visitDarts';
 
 /**
  * Offline (trening / lokalny) finish paths for Counter — bez API.
@@ -48,8 +49,13 @@ export function createOfflineVisitFlow(deps) {
 	} = deps;
 
 	const finishOfflinePerDartBust = (idx, _visitStart, dartsInVisit) => {
+		const recordedDarts = recordedDartsInVisit({
+			bust: true,
+			physicalDarts: dartsInVisit,
+		});
 		popDartHistory(dartsInVisit);
 		getPlayerDispatches()[idx](resetVisitDartLabels());
+		getPlayerDispatches()[idx](updateStats(0, recordedDarts));
 		pushVisitLog(idx, 0, null, { bust: true });
 		visitStartScoreRef.current = null;
 		visitClientIdRef.current = null;
@@ -230,6 +236,11 @@ export function createOfflineVisitFlow(deps) {
 			return;
 		}
 		playVisitScore(0);
+		pushVisitLog(idx, 0, null, { bust: true });
+		dispatch(updateStats(0));
+		const nextIdx = (idx + 1) % N;
+		currentPlayerIndexRef.current = nextIdx;
+		setCurrentPlayerIndex(nextIdx);
 		setCurrentResult(0);
 		setResultEdited(false);
 		okHandlingRef.current = false;

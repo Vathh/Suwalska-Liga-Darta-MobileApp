@@ -207,6 +207,7 @@ export default function Bob27GameScoringScreen({ route, navigation }) {
 					matchFormat,
 					gameType: 'bob27',
 					bob27States: states,
+					accessToken: auth?.accessToken,
 				});
 				showFinished({ winnerName: name, kind: 'training', lost });
 			} else {

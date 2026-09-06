@@ -44,9 +44,10 @@ export const syncFromServer = ({
   dartsPerLeg,
 });
 
-export const updateStats = (points) => ({
+export const updateStats = (points, darts = 3) => ({
   type: UPDATE_STATS,
-  points: points
+  points,
+  darts,
 });
 
 export const appendDartLabel = (label) => ({

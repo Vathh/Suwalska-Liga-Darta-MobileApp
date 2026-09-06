@@ -24,7 +24,11 @@ import {
 import {
 	loadPersistedTrainingPlayers,
 	savePersistedTrainingPlayers,
+	displayTrainingPlayerName,
+	makeSelfTrainingPlayer,
+	dropStaleSelfSlots,
 } from '../../helpers/persistTrainingPlayers';
+import useAuth from '../../hooks/useAuth';
 import { removeTempPlayerStats } from '../../helpers/trainingHistory/persistTempPlayerStats';
 import { colors } from '../../theme/colors';
 
@@ -32,6 +36,7 @@ const MIN_PLAYERS = 1;
 const MAX_PLAYERS = 8;
 
 const TrainingMatchSetup = ({ navigation, route }) => {
+	const { auth } = useAuth();
 	const [players, setPlayers] = useState([]);
 	const [playersLoaded, setPlayersLoaded] = useState(false);
 	const [matchFormat, setMatchFormat] = useState(DEFAULT_MATCH_FORMAT);
@@ -60,15 +65,28 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 
 		loadPersistedMatchFormat('training').then(setMatchFormat);
 		loadPersistedTrainingPlayers().then((list) => {
-			setPlayers(list);
+			const cleaned = dropStaleSelfSlots(list, auth?.playerId);
+			if (cleaned.length === 0 && auth?.playerId) {
+				const self = makeSelfTrainingPlayer(auth);
+				setPlayers(self ? [self] : []);
+			} else {
+				setPlayers(cleaned);
+			}
 			setPlayersLoaded(true);
 		});
-	}, [route?.params?.prefill]);
+	}, [route?.params?.prefill, auth?.playerId, auth?.playerName]);
 
 	React.useEffect(() => {
 		if (!playersLoaded) return;
+		if (auth?.playerId && players.length === 0) {
+			const self = makeSelfTrainingPlayer(auth);
+			if (self) {
+				setPlayers([self]);
+				return;
+			}
+		}
 		savePersistedTrainingPlayers(players);
-	}, [players, playersLoaded]);
+	}, [players, playersLoaded, auth?.playerId, auth?.playerName]);
 
 	const isAlreadyInGame = (name) =>
 		players.some((p) => p.name.toLowerCase() === name.toLowerCase());
@@ -193,8 +211,10 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 
 		const trainingPlayers = players.map((p, i) => ({
 			id: i + 1,
-			name: p.name,
-			playerId: null,
+			name: displayTrainingPlayerName(p),
+			playerId: p.isSelf ? p.accountPlayerId : null,
+			isSelf: !!p.isSelf,
+			accountPlayerId: p.isSelf ? p.accountPlayerId : null,
 		}));
 
 		navigation.navigate('GameScoring', {
@@ -215,8 +235,9 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 		<>
 			<Text style={styles.title}>Mecz treningowy</Text>
 			<Text style={styles.hint}>
-				Bez konta i bez internetu. Wynik nie jest zapisywany — aplikacja służy
-				tylko do liczenia punktów podczas gry.
+				{auth?.playerId
+					? 'Slot „JA” to Twoje konto — tylko jego statystyki trafiają do kariery. Kumpli z imion lokalnych nie zapisujemy na serwerze. Możesz usunąć JA i grać pod innym imieniem.'
+					: 'Bez konta trening zostaje tylko na tym telefonie. Zaloguj się, żeby slot JA zapisywał się w karierze.'}
 			</Text>
 
 			<View style={styles.section}>
@@ -431,7 +452,7 @@ const TrainingMatchSetup = ({ navigation, route }) => {
 								style={[styles.playerTile, isActive && styles.playerTileActive]}
 							>
 								<Text style={styles.playerTileName} numberOfLines={1}>
-									{item.name}
+									{displayTrainingPlayerName(item)}
 								</Text>
 								<Pressable
 									style={styles.removeButton}
