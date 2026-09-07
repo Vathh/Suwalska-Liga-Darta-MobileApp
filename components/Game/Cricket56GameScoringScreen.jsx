@@ -26,6 +26,7 @@ import {
 import { saveCompletedTrainingGame } from '../../helpers/trainingHistory/saveCompletedTrainingGame';
 import useAuth from '../../hooks/useAuth';
 import { useCricket56FfaScoring } from '../../hooks/useCricket56FfaScoring';
+import { notifyFfaGameAborted } from '../../helpers/gameScoring/notifyFfaGameAborted';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
 import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
 import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
@@ -127,6 +128,7 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 		setGameClosed,
 		legOpenerIndexRef,
 		onFinishedQuickGameId,
+		onAborted: () => notifyFfaGameAborted(navigation),
 		reloadKey,
 	});
 
@@ -139,6 +141,7 @@ export default function Cricket56GameScoringScreen({ route, navigation }) {
 		syncEnabled,
 		lobbyId,
 		intentionalFfaLeaveRef,
+		lobbyScoringMode,
 	});
 
 	useFfaPresenceHeartbeat({

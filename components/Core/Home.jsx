@@ -1,19 +1,50 @@
 import React, { useCallback, useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
+import { Ionicons } from '@expo/vector-icons'
 import useAuth from '../../hooks/useAuth'
-import {
-	buildGameScoringParamsFromActiveGame,
-	resolveActiveFfaGame,
-} from '../../helpers/activeQuickGame'
-import { postFfaPresence } from '../../helpers/quickGameFfaApi'
+import { resolveActiveFfaGame } from '../../helpers/activeQuickGame'
+import ActiveQuickGameActions from '../QuickGame/ActiveQuickGameActions'
 import { colors } from '../../theme/colors'
 
-const Home = ({ navigation }) => {
+function ModeTile({ icon, title, hint, onPress, variant = 'default' }) {
+  const isPrimary = variant === 'primary'
+  const isReferee = variant === 'referee'
 
+  return (
+    <Pressable
+      style={[
+        styles.tile,
+        isPrimary && styles.tilePrimary,
+        isReferee && styles.tileReferee,
+      ]}
+      onPress={onPress}
+    >
+      <View style={[styles.tileIcon, isPrimary && styles.tileIconPrimary]}>
+        <Ionicons
+          name={icon}
+          size={22}
+          color={isPrimary ? colors.onAccent : colors.accent}
+        />
+      </View>
+      <View style={styles.tileText}>
+        <Text style={[styles.tileTitle, isPrimary && styles.tileTitlePrimary]}>
+          {title}
+        </Text>
+        {hint ? (
+          <Text style={[styles.tileHint, isPrimary && styles.tileHintPrimary]}>
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
+  )
+}
+
+const Home = ({ navigation }) => {
   const { auth } = useAuth()
+  const isLoggedIn = !!auth?.accessToken
   const [activeGame, setActiveGame] = useState(null)
-  const [leavingGame, setLeavingGame] = useState(false)
 
   useFocusEffect(
     useCallback(() => {
@@ -46,219 +77,158 @@ const Home = ({ navigation }) => {
     }, [auth?.accessToken]),
   )
 
-  const tournamentModeHandler = () => {
-    navigation.navigate('TournamentCode')
-  }
-
-  const quickGameOnlineHandler = () => {
-    if (auth?.accessToken) {
-      navigation.navigate('QuickGameLobby')
-    } else {
-      Alert.alert(
-        'Quick game online',
-        'Wymagane konto i internet. Zaloguj się, aby utworzyć lobby ze znajomymi.',
-        [
-          { text: 'Anuluj', style: 'cancel' },
-          { text: 'Zaloguj', onPress: () => navigation.navigate('AccountLogin') },
-        ],
-      )
-    }
-  }
-
-  const resumeGameHandler = () => {
-    const params = buildGameScoringParamsFromActiveGame(activeGame)
-    if (params) {
-      navigation.navigate('GameScoring', params)
-    }
-  }
-
-  const leaveGameHandler = () => {
-    if (!activeGame?.lobbyId || !auth?.accessToken || leavingGame) {
-      return
-    }
-
-    const playerCount = activeGame?.players?.length ?? 0
-    const message =
-      playerCount === 2
-        ? 'Opuścisz mecz bez możliwości powrotu. Przeciwnik wygra walkowerem — tak samo jak przy wyjściu z ekranu gry.'
-        : 'Opuścisz mecz bez możliwości powrotu. To samo zachowanie jak przy wyjściu z ekranu gry.'
-
-    Alert.alert('Opuścić mecz?', message, [
-      { text: 'Anuluj', style: 'cancel' },
-      {
-        text: 'Opuść',
-        style: 'destructive',
-        onPress: async () => {
-          setLeavingGame(true)
-          try {
-            await postFfaPresence(activeGame.lobbyId, auth.accessToken, 'left')
-          } catch {
-            // i tak czyścimy lokalny stan — użytkownik chce wyjść
-          }
-          setActiveGame(null)
-          setLeavingGame(false)
-        },
-      },
-    ])
-  }
-
-	const trainingHandler = () => {
-    navigation.navigate('TrainingHub')
-  }
-
-  const opponentNames =
-    activeGame?.players
-      ?.filter((_, index) => index !== activeGame.myPlayerIndex)
-      ?.map((p) => p.name)
-      ?.join(', ') ?? 'przeciwnikiem'
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Wybierz tryb gry</Text>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.form}>
         {activeGame ? (
-          <View style={styles.resumeBlock}>
-            <Text style={styles.resumeContext}>
-              Quick game z {opponentNames}
-            </Text>
-            <View style={styles.resumeRow}>
-              <Pressable
-                style={[styles.buttonResume, styles.resumeRowButton]}
-                onPress={resumeGameHandler}
-                disabled={leavingGame}
-              >
-                <Text style={styles.buttonResumeText}>Wróć do meczu</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.buttonLeave, styles.resumeRowButton]}
-                onPress={leaveGameHandler}
-                disabled={leavingGame}
-              >
-                <Text style={styles.buttonLeaveText}>
-                  {leavingGame ? 'Opuszczanie…' : 'Opuść'}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
+          <ActiveQuickGameActions
+            game={activeGame}
+            accessToken={auth?.accessToken}
+            navigation={navigation}
+            onCleared={() => setActiveGame(null)}
+            resumeLabel="Wróć do meczu"
+          />
         ) : null}
-        <Pressable style={styles.button} onPress={tournamentModeHandler}>
-          <Text style={styles.buttonText}>Sędziowanie turnieju</Text>
-          <Text style={styles.buttonHint}>Kod / QR od organizatora</Text>
-        </Pressable>
-        {auth?.accessToken ? (
-          <Pressable
-            style={styles.button}
-            onPress={() => navigation.navigate('JoinTournament')}
-          >
-            <Text style={styles.buttonText}>Dołącz do turnieju</Text>
-            <Text style={styles.buttonHint}>Kod / QR od organizatora</Text>
-          </Pressable>
+
+        <Text style={[styles.sectionLabel, !activeGame && styles.sectionLabelFirst]}>
+          Graj
+        </Text>
+        {isLoggedIn ? (
+          <ModeTile
+            variant="primary"
+            icon="flash-outline"
+            title="Szybka gra online"
+            hint="Lobby ze znajomymi"
+            onPress={() => navigation.navigate('QuickGameLobby')}
+          />
         ) : null}
-        <Pressable style={styles.button} onPress={quickGameOnlineHandler}>
-          <Text style={styles.buttonText}>Szybka gra online</Text>
-        </Pressable>
-        {auth?.accessToken ? (
-          <Pressable
-            style={styles.button}
+        {isLoggedIn ? (
+          <ModeTile
+            icon="trophy-outline"
+            title="Mecze ligowe"
+            hint="Twoje mecze w otwartym sezonie"
             onPress={() => navigation.navigate('LeagueGames')}
-          >
-            <Text style={styles.buttonText}>Mecze ligowe</Text>
-            <Text style={styles.buttonHint}>Twoje mecze w otwartym sezonie</Text>
-          </Pressable>
+          />
         ) : null}
-        <Pressable style={styles.button} onPress={trainingHandler}>
-          <Text style={styles.buttonText}>Trening</Text>
-        </Pressable>
+        <ModeTile
+          icon="barbell-outline"
+          title="Trening"
+          hint={isLoggedIn ? 'Lokalnie na tym telefonie' : 'Bez konta, na tym telefonie'}
+          onPress={() => navigation.navigate('TrainingHub')}
+        />
+
+        <Text style={styles.sectionLabel}>Turniej</Text>
+        {isLoggedIn ? (
+          <ModeTile
+            icon="qr-code-outline"
+            title="Dołącz do turnieju"
+            hint="Kod / QR od organizatora"
+            onPress={() => navigation.navigate('JoinTournament')}
+          />
+        ) : null}
+        <ModeTile
+          variant="referee"
+          icon="tablet-landscape-outline"
+          title="Sędziowanie turnieju"
+          hint="Kod / QR od organizatora"
+          onPress={() => navigation.navigate('TournamentCode')}
+        />
+
+        {isLoggedIn ? null : (
+          <Text style={styles.loginHint}>Zaloguj się, by odkryć więcej.</Text>
+        )}
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scroll: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  container: {
+    flexGrow: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 24,
-    color: colors.textMuted,
-    marginBottom: 48,
-    marginTop: 100,
-    textAlign: 'center',
+    paddingVertical: 24,
   },
   form: {
     alignItems: 'stretch',
     width: '100%',
-    maxWidth: 320,
+    maxWidth: 400,
   },
-  resumeBlock: {
-    marginBottom: 8,
-  },
-  resumeContext: {
-    marginBottom: 8,
+  sectionLabel: {
+    marginTop: 20,
+    marginBottom: 10,
     fontSize: 12,
-    color: colors.successSoftText,
-    textAlign: 'center',
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.textDim,
   },
-  resumeRow: {
+  sectionLabelFirst: {
+    marginTop: 0,
+  },
+  tile: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  resumeRowButton: {
-    flex: 1,
-  },
-  buttonResume: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: colors.successMuted,
-    borderRadius: 8,
-  },
-  buttonResumeText: {
-    color: colors.successSoftText,
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  buttonLeave: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: colors.dangerMuted,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.danger,
-  },
-  buttonLeaveText: {
-    color: colors.dangerText,
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  button: {
-    alignItems: 'center',
-    marginTop: 16,
-    paddingVertical: 12,
+    marginBottom: 10,
+    paddingVertical: 14,
     paddingHorizontal: 14,
     backgroundColor: colors.bgElevated,
     borderWidth: 1.5,
     borderColor: colors.borderStrong,
-    borderRadius: 8,
+    borderRadius: 10,
+    gap: 12,
   },
-  buttonText: {
+  tilePrimary: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  tileReferee: {
+    borderColor: colors.accentBorder,
+  },
+  tileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentMuted,
+  },
+  tileIconPrimary: {
+    backgroundColor: colors.accentSoftStrong,
+  },
+  tileText: {
+    flex: 1,
+  },
+  tileTitle: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
   },
-  buttonHint: {
-    marginTop: 5,
+  tileTitlePrimary: {
+    color: colors.onAccent,
+  },
+  tileHint: {
+    marginTop: 3,
     fontSize: 13,
-    color: colors.text,
-    opacity: 0.85,
+    color: colors.textMuted,
+  },
+  tileHintPrimary: {
+    color: colors.onAccentHint,
+  },
+  loginHint: {
+    marginTop: 24,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textMuted,
     textAlign: 'center',
   },
 })

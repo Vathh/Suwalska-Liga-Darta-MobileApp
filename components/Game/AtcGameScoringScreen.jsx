@@ -22,6 +22,7 @@ import {
 import { saveCompletedTrainingGame } from '../../helpers/trainingHistory/saveCompletedTrainingGame';
 import useAuth from '../../hooks/useAuth';
 import { useAtcFfaScoring } from '../../hooks/useAtcFfaScoring';
+import { notifyFfaGameAborted } from '../../helpers/gameScoring/notifyFfaGameAborted';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
 import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
 import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
@@ -118,6 +119,7 @@ export default function AtcGameScoringScreen({ route, navigation }) {
 		setGameClosed,
 		legOpenerIndexRef,
 		onFinishedQuickGameId,
+		onAborted: () => notifyFfaGameAborted(navigation),
 		reloadKey,
 	});
 
@@ -130,6 +132,7 @@ export default function AtcGameScoringScreen({ route, navigation }) {
 		syncEnabled,
 		lobbyId,
 		intentionalFfaLeaveRef,
+		lobbyScoringMode,
 	});
 
 	useFfaPresenceHeartbeat({

@@ -34,13 +34,14 @@ export function useGameFinishedEffects({
 	matchDoubleAccRef = null,
 	isPerDart = false,
 	visitLog = null,
+	gameAborted = false,
 }) {
 	const quickResultSentRef = useRef(false);
 	const tournamentResultSentRef = useRef(false);
 	const trainingFinishedShownRef = useRef(false);
 
 	useEffect(() => {
-		if (!gameClosed || mode !== GAME_MODE.QUICK_FFA) return;
+		if (!gameClosed || gameAborted || mode !== GAME_MODE.QUICK_FFA) return;
 		if (quickResultSentRef.current) return;
 		quickResultSentRef.current = true;
 
@@ -71,6 +72,7 @@ export function useGameFinishedEffects({
 		matchFormat,
 		finishedQuickGameIdRef,
 		onFinished,
+		gameAborted,
 	]);
 
 	useEffect(() => {

@@ -4,6 +4,7 @@ import {
 	CRICKET_APPLY,
 	normalizeCricketHits,
 } from '../helpers/cricket';
+import { consumeFfaAbortPayload } from '../helpers/gameScoring/ffaClosedStatus.js';
 import { useGameScoringRealtime } from './useGameScoringRealtime';
 
 const BACKUP_POLL_MS = 2500;
@@ -30,12 +31,14 @@ export function useCricketFfaScoring({
 	setGameClosed,
 	legOpenerIndexRef,
 	onFinishedQuickGameId,
+	onAborted,
 	reloadKey = null,
 }) {
 	const lastVersionRef = useRef(-1);
 	const pendingWritesRef = useRef(0);
 	const writeChainRef = useRef(Promise.resolve());
 	const finishedRef = useRef(false);
+	const abortedRef = useRef(false);
 	const [busy, setBusy] = useState(false);
 	const [canInputFromServer, setCanInputFromServer] = useState(true);
 
@@ -44,6 +47,15 @@ export function useCricketFfaScoring({
 
 	const applyState = useCallback(
 		(state) => {
+			if (
+				consumeFfaAbortPayload(state, {
+					setGameClosed,
+					onAborted,
+					handledRef: abortedRef,
+				})
+			) {
+				return;
+			}
 			if (!state?.session || !Array.isArray(state.players)) {
 				return;
 			}
@@ -91,6 +103,7 @@ export function useCricketFfaScoring({
 		[
 			N,
 			legOpenerIndexRef,
+			onAborted,
 			onFinishedQuickGameId,
 			setCurrentPlayerIndex,
 			setDartsInVisit,

@@ -13,6 +13,21 @@ export const QUICK_GAME_SCORING_MODES = { ONE_DEVICE: 'one_device', EACH_OWN: 'e
 
 const LOBBY_POLL_MS = 45000;
 
+function resolveYouAreHost(data, prev, auth) {
+	if (typeof data?.youAreHost === 'boolean') {
+		return data.youAreHost;
+	}
+	if (data?.hostId != null && auth?.userId != null) {
+		return Number(data.hostId) === Number(auth.userId);
+	}
+	if (Array.isArray(data?.players) && auth?.playerId != null) {
+		return data.players.some(
+			(p) => p.isHost && Number(p.playerId) === Number(auth.playerId),
+		);
+	}
+	return prev?.youAreHost ?? false;
+}
+
 export function normalizeLobbyGameType(value) {
 	const raw = String(value ?? 'x01').toLowerCase();
 	if (raw === 'cricket') return 'cricket';
@@ -96,8 +111,7 @@ export function useQuickGameLobbyState({ route, navigation, auth, defaultMatchFo
 		setLobby((prev) => ({
 			...(prev ?? {}),
 			...data,
-			// Pole user-specific może nie przyjść w evencie lobby; zachowaj poprzednią wartość.
-			youAreHost: data.youAreHost ?? prev?.youAreHost ?? false,
+			youAreHost: resolveYouAreHost(data, prev, auth),
 			gameType: normalizeLobbyGameType(data.gameType ?? data.game_type ?? prev?.gameType),
 			scoringMode: data.scoringMode ?? prev?.scoringMode ?? QUICK_GAME_SCORING_MODES.EACH_OWN,
 		}));
@@ -141,7 +155,7 @@ export function useQuickGameLobbyState({ route, navigation, auth, defaultMatchFo
 				}),
 			);
 		}
-	}, [lobby?.id, lobby?.youAreHost, navigation, resolveMyPlayerIndex]);
+	}, [auth, lobby?.id, lobby?.youAreHost, navigation, resolveMyPlayerIndex]);
 
 	const fetchLobbyById = useCallback(async (lobbyId) => {
 		if (!lobbyId || !auth?.accessToken) return;

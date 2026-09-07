@@ -10,15 +10,17 @@ import {
   View,
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import { useFocusEffect } from '@react-navigation/native';
 import useAuth from '../../hooks/useAuth';
 import { useLeaveLobbyOnTabPress } from '../../hooks/useLeaveLobbyOnTabPress';
+import { resolveActiveFfaGame } from '../../helpers/activeQuickGame';
+import ActiveQuickGameActions from './ActiveQuickGameActions';
 import {
   QUICK_GAME_GAME_TYPES as GAME_TYPES,
   QUICK_GAME_SCORING_MODES as SCORING_MODES,
   normalizeLobbyGameType,
   useQuickGameLobbyState,
 } from '../../hooks/useQuickGameLobbyState';
-import { getReverbDiagnostics } from '../../helpers/apiConfig';
 import {
   addQuickGameLobbyGuest,
   createQuickGameLobby,
@@ -30,7 +32,6 @@ import {
 } from '../../helpers/quickGameLobbyApi';
 import { fetchFriends as fetchFriendsRequest } from '../../helpers/friendsApi';
 import { addCachedTempName, getCachedTempNames } from '../../helpers/tempPlayerCache';
-import ReverbDebugPanel from '../ReverbDebugPanel';
 import MatchFormatPicker, { DEFAULT_MATCH_FORMAT } from './MatchFormatPicker';
 import {
   formatMatchLabel,
@@ -65,7 +66,6 @@ const QuickGameLobby = ({ navigation, route }) => {
     setInvitations,
     orderedPlayers,
     setOrderedPlayers,
-    wsLive,
     applyLobbyData,
     fetchLobbyById,
   } = useQuickGameLobbyState({ route, navigation, auth, defaultMatchFormat: DEFAULT_MATCH_FORMAT });
@@ -79,7 +79,7 @@ const QuickGameLobby = ({ navigation, route }) => {
   const [friends, setFriends] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [myReady, setMyReady] = useState(false); // po kliknięciu Gotowy – nie pozwalaj klikać ponownie
-  const reverbDiag = getReverbDiagnostics();
+  const [activeGame, setActiveGame] = useState(null);
 
   const clearLobbyLocal = useCallback(() => {
     setLobby(null);
@@ -95,6 +95,39 @@ const QuickGameLobby = ({ navigation, route }) => {
     onLeftLobby: clearLobbyLocal,
     enabled: !!lobby?.id && (lobby?.status ?? 'waiting') === 'waiting',
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      if (lobby?.id) {
+        return () => {
+          cancelled = true;
+        };
+      }
+      if (!auth?.accessToken) {
+        setActiveGame(null);
+        return () => {
+          cancelled = true;
+        };
+      }
+
+      resolveActiveFfaGame(auth.accessToken)
+        .then((game) => {
+          if (!cancelled) {
+            setActiveGame(game);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setActiveGame(null);
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [auth?.accessToken, lobby?.id]),
+  );
 
   const resolveMyPlayerIndex = useCallback((players, fromApi) => {
     if (fromApi !== undefined && fromApi !== null) return fromApi;
@@ -117,8 +150,12 @@ const QuickGameLobby = ({ navigation, route }) => {
         setInvitations([]);
         fetchLobbyById(data.id);
       } else if (status === 409 && data?.existingLobbyId) {
-        setError(data?.message || 'Masz już aktywne lobby.');
-        fetchLobbyById(data.existingLobbyId);
+        if (data.status === 'started' || data.existingStatus === 'started') {
+          const game = await resolveActiveFfaGame(auth?.accessToken);
+          setActiveGame(game);
+        } else {
+          await fetchLobbyById(data.existingLobbyId);
+        }
       } else {
         setError(data?.message || 'Nie udało się utworzyć lobby');
       }
@@ -311,14 +348,6 @@ const QuickGameLobby = ({ navigation, route }) => {
     const listHeader = (
       <>
         <Text style={styles.title}>Lobby quick game</Text>
-        <Text style={[styles.hintSmall, wsLive ? styles.wsLive : styles.wsOffline]}>
-          Live sync: {wsLive ? 'połączono' : 'offline'}
-          {' · '}
-          {reverbDiag.wsHost}:{reverbDiag.wsPort}
-          {' · key '}
-          {reverbDiag.keyPrefix}…
-          {reverbDiag.keyLooksDefault ? ' (domyślny — zły build!)' : ''}
-        </Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.section}>
@@ -458,7 +487,6 @@ const QuickGameLobby = ({ navigation, route }) => {
             <Text style={styles.buttonOutlinedText}>Wróć</Text>
           </Pressable>
         ) : null}
-        <ReverbDebugPanel />
       </>
     );
 
@@ -635,20 +663,44 @@ const QuickGameLobby = ({ navigation, route }) => {
     );
   }
 
-  // Ekran początkowy: jeden przycisk „Utwórz lobby” – od razu tworzy lobby i wchodzi w widok lobby
+  // Ekran początkowy: utwórz lobby albo wróć / skasuj wystartowaną grę
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, styles.landing]}>
       <Text style={styles.title}>Szybki mecz – Lobby</Text>
-      <Text style={styles.hint}>
-        Utwórz lobby i zaproś znajomych do gry. Ustawienia i zaproszenia zarządzasz w lobby.
-      </Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {activeGame ? (
+        <>
+          <Text style={styles.hint}>
+            Masz już wystartowaną grę. Możesz do niej wrócić albo skasować ją i zacząć od nowa.
+          </Text>
+          <ActiveQuickGameActions
+            game={activeGame}
+            accessToken={auth?.accessToken}
+            navigation={navigation}
+            onCleared={() => setActiveGame(null)}
+          />
+        </>
+      ) : (
+        <>
+          <Text style={styles.hint}>
+            Utwórz lobby i zaproś znajomych do gry. Ustawienia i zaproszenia zarządzasz w lobby.
+          </Text>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Pressable
+            style={styles.button}
+            onPress={handleCreate}
+            disabled={!auth?.accessToken || loading}
+          >
+            <Text style={styles.buttonText}>{loading ? 'Tworzenie lobby…' : 'Utwórz lobby'}</Text>
+          </Pressable>
+        </>
+      )}
       <Pressable
-        style={styles.button}
-        onPress={handleCreate}
-        disabled={!auth?.accessToken || loading}
+        style={styles.backBtn}
+        onPress={() => {
+          if (navigation.canGoBack()) navigation.goBack();
+        }}
       >
-        <Text style={styles.buttonText}>{loading ? 'Tworzenie lobby…' : 'Utwórz lobby'}</Text>
+        <Text style={styles.backBtnText}>Wróć</Text>
       </Pressable>
       {!auth?.accessToken && (
         <Text style={styles.hint}>
@@ -663,6 +715,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  landing: {
+    padding: 24,
   },
   formContent: {
     padding: 24,
@@ -893,6 +948,15 @@ const styles = StyleSheet.create({
   buttonTextDisabled: {
     color: colors.textDisabled,
   },
+  backBtn: {
+    marginTop: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  backBtnText: {
+    color: colors.textMuted,
+    fontSize: 15,
+  },
   buttonOutlined: {
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -983,12 +1047,6 @@ const styles = StyleSheet.create({
   },
   gameTypeBtnTextActive: {
     color: colors.accent,
-  },
-  wsLive: {
-    color: colors.success,
-  },
-  wsOffline: {
-    color: colors.danger,
   },
 });
 

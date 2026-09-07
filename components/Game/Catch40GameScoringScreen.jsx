@@ -26,6 +26,7 @@ import {
 import { saveCompletedTrainingGame } from '../../helpers/trainingHistory/saveCompletedTrainingGame';
 import useAuth from '../../hooks/useAuth';
 import { useCatch40FfaScoring } from '../../hooks/useCatch40FfaScoring';
+import { notifyFfaGameAborted } from '../../helpers/gameScoring/notifyFfaGameAborted';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
 import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
 import { useLeaveGameConfirmation } from '../../hooks/useLeaveGameConfirmation';
@@ -148,6 +149,7 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 		setGameClosed,
 		legOpenerIndexRef,
 		onFinishedQuickGameId,
+		onAborted: () => notifyFfaGameAborted(navigation),
 		reloadKey,
 	});
 
@@ -160,6 +162,7 @@ export default function Catch40GameScoringScreen({ route, navigation }) {
 		syncEnabled,
 		lobbyId,
 		intentionalFfaLeaveRef,
+		lobbyScoringMode,
 	});
 
 	useFfaPresenceHeartbeat({

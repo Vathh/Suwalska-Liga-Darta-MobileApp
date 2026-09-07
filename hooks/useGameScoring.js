@@ -7,6 +7,7 @@ import {
 	isNormalizedScoringState,
 	normalizeScoringState,
 } from '../helpers/gameScoring/index.js';
+import { consumeFfaAbortPayload } from '../helpers/gameScoring/ffaClosedStatus.js';
 import {
 	clearOutbox,
 	dequeueOutbox,
@@ -54,6 +55,7 @@ export function useGameScoring({
 	onStateLoaded = null,
 	onMatchFormat = null,
 	getCloseLegDoubleStats = null,
+	onAborted = null,
 }) {
 	const currentLegIdRef = useRef(null);
 	const lastStateKeyRef = useRef('');
@@ -65,6 +67,7 @@ export function useGameScoring({
 	const visitChainRef = useRef(Promise.resolve());
 	const finishedQuickGameIdRef = useRef(null);
 	const lastSyncStateRef = useRef(null);
+	const abortedRef = useRef(false);
 	const wsHealthyRef = useRef(false);
 	const flushInFlightRef = useRef(false);
 	const [wsHealthy, setWsHealthy] = useState(false);
@@ -205,6 +208,18 @@ export function useGameScoring({
 
 	const onStateLoadedRef = useRef(onStateLoaded);
 	onStateLoadedRef.current = onStateLoaded;
+	const onAbortedRef = useRef(onAborted);
+	onAbortedRef.current = onAborted;
+
+	const handleAbortIfNeeded = useCallback(
+		(state) =>
+			consumeFfaAbortPayload(state, {
+				setGameClosed,
+				onAborted: () => onAbortedRef.current?.(),
+				handledRef: abortedRef,
+			}),
+		[setGameClosed],
+	);
 
 	const markMatchFinishedFromState = useCallback(
 		(state) => {
@@ -319,6 +334,9 @@ export function useGameScoring({
 		}
 		try {
 			const state = await syncTransport.fetchState();
+			if (handleAbortIfNeeded(state)) {
+				return state;
+			}
 			applyStateSafeRef.current(state, 'external');
 			onStateLoadedRef.current?.(state);
 			if (isMatchFinishedState(state)) {
@@ -335,7 +353,7 @@ export function useGameScoring({
 			onStateLoadedRef.current?.(null);
 			return null;
 		}
-	}, [markMatchFinishedFromState]);
+	}, [markMatchFinishedFromState, handleAbortIfNeeded]);
 
 	const loadStateRef = useRef(loadState);
 	loadStateRef.current = loadState;
@@ -449,6 +467,9 @@ export function useGameScoring({
 		scope: realtimeConfig?.scope ?? 'game-scoring',
 		unwrapPayload: realtimeConfig?.unwrapPayload,
 		onGameState: (state) => {
+			if (handleAbortIfNeeded(state)) {
+				return;
+			}
 			applyStateSafeRef.current(state, 'external');
 			if (isMatchFinishedState(state)) {
 				const key =

@@ -70,7 +70,12 @@ export function computeFfaStateRevision(state) {
 	);
 	rev += maxLegsWon * 10_000 + legsToWinSet + setsToWinMatch * 100;
 
-	if (state.session?.status === 'finished' || state.game?.status === 'finished') {
+	if (
+		state.session?.status === 'finished'
+		|| state.game?.status === 'finished'
+		|| state.session?.status === 'aborted'
+		|| state.game?.status === 'aborted'
+	) {
 		rev += 999_999_999;
 	}
 

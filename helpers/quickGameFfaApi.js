@@ -3,6 +3,7 @@ import {
 	getQuickGameFfaUndoUrl,
 	getQuickGameFfaVisitUrl,
 	getQuickGameFfaPresenceUrl,
+	getQuickGameFfaAbortUrl,
 	getQuickGameFfaCricketDartUrl,
 	getQuickGameFfaCricketUndoUrl,
 	getQuickGameFfaBob27DartUrl,
@@ -89,6 +90,21 @@ export async function undoFfaVisit(lobbyId, accessToken) {
 		text,
 		'Nie udało się cofnąć wizyty',
 	);
+	return data;
+}
+
+export async function abortFfaGame(lobbyId, accessToken) {
+	const res = await fetch(getQuickGameFfaAbortUrl(lobbyId), {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			Authorization: `Bearer ${accessToken}`,
+		},
+	});
+	const data = await res.json().catch(() => null);
+	if (!res.ok) {
+		throw new Error(data?.message || 'Nie udało się skasować gry');
+	}
 	return data;
 }
 

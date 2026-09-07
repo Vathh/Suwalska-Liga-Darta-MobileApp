@@ -59,6 +59,9 @@ function tournamentStatus(raw) {
 }
 
 function ffaStatus(raw) {
+	if (raw?.session?.status === 'aborted' || raw?.game?.status === 'aborted') {
+		return 'aborted';
+	}
 	if (raw?.session?.status === 'finished' || raw?.game?.status === 'finished') {
 		return 'finished';
 	}

@@ -33,6 +33,7 @@ import { gameScoringScreenStyles as styles } from './GameScoringScreen.styles';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import useAuth from '../../hooks/useAuth';
 import { useGameScoring } from '../../hooks/useGameScoring';
+import { notifyFfaGameAborted } from '../../helpers/gameScoring/notifyFfaGameAborted';
 import { useFfaPresenceHeartbeat } from '../../hooks/useFfaPresenceHeartbeat';
 import { useGameFinishedEffects } from '../../hooks/useGameFinishedEffects';
 import { useGameFinishedModal } from '../../hooks/useGameFinishedModal';
@@ -190,6 +191,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 	/** Zamrożony kontekst modala checkout — nie zależy od currentPlayerIndex po zamknięciu lega. */
 	const [checkoutModalPlayer, setCheckoutModalPlayer] = useState(null);
 	const [gameClosed, setGameClosed] = useState(false);
+	const [gameAborted, setGameAborted] = useState(false);
 
 	const startingScore = matchFormat?.startingScore ?? 501;
 
@@ -411,6 +413,10 @@ const GameScoringScreen = ({ route, navigation }) => {
 		onStateLoaded: handleScoringStateLoaded,
 		onMatchFormat: handleSyncedMatchFormat,
 		reloadKey,
+		onAborted: () => {
+			setGameAborted(true);
+			notifyFfaGameAborted(navigation);
+		},
 		getCloseLegDoubleStats: () => {
 			const map = {};
 			players.forEach((p, i) => {
@@ -566,6 +572,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		matchDoubleAccRef,
 		isPerDart: isPerDartMode,
 		visitLog: visitLogRef.current,
+		gameAborted,
 	});
 
 	const beginScoringBusy = useCallback((label = 'Zapisywanie wyniku…') => {
@@ -1146,6 +1153,7 @@ const GameScoringScreen = ({ route, navigation }) => {
 		lobbyId,
 		intentionalFfaLeaveRef,
 		onClosedLeave: logoutAfterTournamentIfNeeded,
+		lobbyScoringMode,
 	});
 
 	useFfaPresenceHeartbeat({

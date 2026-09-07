@@ -20,6 +20,15 @@ export async function resolveActiveFfaGame(accessToken) {
 	}
 }
 
+export function activeQuickGameOpponentNames(game) {
+	return (
+		game?.players
+			?.filter((_, index) => index !== game.myPlayerIndex)
+			?.map((p) => p.name)
+			?.join(', ') ?? 'przeciwnikiem'
+	);
+}
+
 export function buildGameScoringParamsFromActiveGame(game) {
 	if (!game?.lobbyId) return null;
 
