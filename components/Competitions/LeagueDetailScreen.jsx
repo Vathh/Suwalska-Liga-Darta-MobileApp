@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	RefreshControl,
 	ScrollView,
@@ -13,6 +12,7 @@ import useAuth from '../../hooks/useAuth';
 import { fetchCompetitionDetail } from '../../helpers/competitionsApi';
 import { getLeagueUrl } from '../../helpers/apiConfig';
 import DetailHeader, { STATUS_STYLES } from './DetailHeader';
+import ScreenLoading from '../Common/ScreenLoading';
 import { colors } from '../../theme/colors';
 
 function formatDivisionMeta(division) {
@@ -74,11 +74,7 @@ const LeagueDetailScreen = ({ navigation, route }) => {
 	);
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	const league = data?.league;

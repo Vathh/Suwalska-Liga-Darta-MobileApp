@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -15,6 +14,7 @@ import {
 } from '../../helpers/trainingHistory/buildTrainingGameRecord';
 import { getTrainingGameById } from '../../helpers/trainingHistory/persistTrainingHistory';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 
 const StatRow = ({ label, value }) => (
 	<View style={styles.statRow}>
@@ -152,11 +152,7 @@ const TrainingGameDetail = ({ route }) => {
 	}, [gameId]);
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	if (!game) {

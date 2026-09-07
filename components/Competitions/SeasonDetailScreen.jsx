@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	RefreshControl,
 	ScrollView,
@@ -18,6 +17,7 @@ import { getSeasonUrl } from '../../helpers/apiConfig';
 import DetailHeader, { STATUS_STYLES } from './DetailHeader';
 import CompetitionTable from './CompetitionTable';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 
 const STANDINGS_COLUMNS = [
 	{ key: 'place', label: '#', width: 36 },
@@ -113,11 +113,7 @@ const SeasonDetailScreen = ({ navigation, route }) => {
 	};
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	const season = data?.season;

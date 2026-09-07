@@ -18,7 +18,7 @@ import { colors } from '../../theme/colors'
  * Ekran uwierzytelnienia kodem / QR tabletu sędziowskiego.
  * route.params.code — opcjonalny kod ze skanu lub deep linku.
  */
-const TournamentCode = ({ route }) => {
+const TournamentCode = ({ route, navigation }) => {
   const { setAuth } = useAuth()
   const initialCode = String(route?.params?.code ?? '').toUpperCase()
 
@@ -175,6 +175,14 @@ const TournamentCode = ({ route }) => {
             <Text style={styles.buttonText}>Wejdź do turnieju</Text>
           )}
         </Pressable>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => {
+            if (navigation.canGoBack()) navigation.goBack()
+          }}
+        >
+          <Text style={styles.backBtnText}>Wróć</Text>
+        </Pressable>
       </View>
     </View>
   )
@@ -250,6 +258,14 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.onAccent,
     fontWeight: 'bold',
+  },
+  backBtn: {
+    marginTop: 20,
+    paddingVertical: 10,
+  },
+  backBtnText: {
+    color: colors.textMuted,
+    fontSize: 15,
   },
   scannerRoot: {
     flex: 1,

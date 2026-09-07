@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-	ActivityIndicator,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
@@ -12,6 +11,7 @@ import useAuth from '../../hooks/useAuth';
 import { fetchCompetitionDetail } from '../../helpers/competitionsApi';
 import { getTournamentUrl } from '../../helpers/apiConfig';
 import DetailHeader from './DetailHeader';
+import ScreenLoading from '../Common/ScreenLoading';
 import CompetitionTabs from './CompetitionTabs';
 import CompetitionTable from './CompetitionTable';
 import PlayoffBracket from './PlayoffBracket';
@@ -101,11 +101,7 @@ const TournamentDetailScreen = ({ navigation, route }) => {
 	};
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	const tournament = data?.tournament;

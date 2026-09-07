@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	RefreshControl,
 	ScrollView,
@@ -16,6 +15,7 @@ import ProfileFriendshipActions from './ProfileFriendshipActions';
 import ProfileStatsOverview from './ProfileStatsOverview';
 import ProfileGameHistory from './ProfileGameHistory';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 
 const TAB_OVERVIEW = 'overview';
 const TAB_HISTORY = 'history';
@@ -62,11 +62,7 @@ const PlayerProfileScreen = ({ navigation, route }) => {
 	};
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	if (error && !profile) {

@@ -104,6 +104,16 @@ export default function JoinTournamentScreen({ route, navigation }) {
 		applyScannedCode(data);
 	};
 
+	const goBack = () => {
+		if (navigation.canGoBack()) navigation.goBack();
+	};
+
+	const backButton = (
+		<Pressable style={styles.backBtn} onPress={goBack}>
+			<Text style={styles.backBtnText}>Wróć</Text>
+		</Pressable>
+	);
+
 	const handleApply = async () => {
 		const normalized = code.trim().toUpperCase();
 		if (!normalized || !auth?.accessToken || submitting) return;
@@ -135,6 +145,7 @@ export default function JoinTournamentScreen({ route, navigation }) {
 				>
 					<Text style={styles.btnText}>Zaloguj</Text>
 				</Pressable>
+				{backButton}
 			</View>
 		);
 	}
@@ -229,6 +240,8 @@ export default function JoinTournamentScreen({ route, navigation }) {
 			)}
 
 			{doneMessage ? <Text style={styles.success}>{doneMessage}</Text> : null}
+
+			{backButton}
 		</View>
 	);
 }
@@ -328,6 +341,15 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		fontSize: 15,
 		fontWeight: '500',
+	},
+	backBtn: {
+		marginTop: 24,
+		paddingVertical: 10,
+		alignItems: 'center',
+	},
+	backBtnText: {
+		color: colors.textMuted,
+		fontSize: 15,
 	},
 	scannerRoot: {
 		flex: 1,

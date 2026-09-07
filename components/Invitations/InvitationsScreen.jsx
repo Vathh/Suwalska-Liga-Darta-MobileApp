@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import useAuth from '../../hooks/useAuth';
+import ScreenLoading from '../Common/ScreenLoading';
 import {
   actOnFriendInvitation,
   actOnOrganizationInvitation,
@@ -143,9 +143,10 @@ const InvitationsScreen = ({ navigation, route }) => {
             screen: 'LeagueGameLobby',
             params: { gameId: inv.id, initialGame: data },
           });
-        } else {
-          Alert.alert('Błąd', data?.message || 'Nie udało się zaakceptować meczu ligowego.');
+          return;
         }
+        Alert.alert('Błąd', data?.message || 'Nie udało się zaakceptować meczu ligowego.');
+        await fetchAll();
         return;
       }
       const { ok, status, data } = await joinQuickGameLobby(inv.lobbyId, auth.accessToken);
@@ -154,7 +155,9 @@ const InvitationsScreen = ({ navigation, route }) => {
           screen: 'QuickGameLobby',
           params: { initialLobby: data },
         });
-      } else if (status === 409) {
+        return;
+      }
+      if (status === 409) {
         Alert.alert(
           'Nie można dołączyć',
           data?.message || 'Masz już aktywne lobby lub mecz w toku.',
@@ -162,8 +165,10 @@ const InvitationsScreen = ({ navigation, route }) => {
       } else {
         Alert.alert('Błąd', data?.message || 'Nie udało się dołączyć do lobby.');
       }
+      await fetchAll();
     } catch (e) {
       Alert.alert('Błąd', 'Błąd połączenia.');
+      await fetchAll();
     } finally {
       setActionId(null);
     }
@@ -219,11 +224,7 @@ const InvitationsScreen = ({ navigation, route }) => {
   }
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
+    return <ScreenLoading />;
   }
 
   const renderTournamentCard = (inv) => {
@@ -415,6 +416,12 @@ const InvitationsScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  centered: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   content: { padding: 24, paddingBottom: 40 },
   tabs: {
     flexDirection: 'row',

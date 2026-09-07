@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	RefreshControl,
 	ScrollView,
@@ -13,6 +12,7 @@ import useAuth from '../../hooks/useAuth';
 import { fetchCompetitionDetail } from '../../helpers/competitionsApi';
 import { getOrganizationUrl } from '../../helpers/apiConfig';
 import DetailHeader from './DetailHeader';
+import ScreenLoading from '../Common/ScreenLoading';
 import { colors } from '../../theme/colors';
 
 const OrganizationDetailScreen = ({ navigation, route }) => {
@@ -53,11 +53,7 @@ const OrganizationDetailScreen = ({ navigation, route }) => {
 	);
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	const organization = data?.organization;

@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	RefreshControl,
 	ScrollView,
@@ -12,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import useAuth from '../../hooks/useAuth';
 import { fetchMyCompetitions } from '../../helpers/myCompetitionsApi';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 
 function formatSeasonMeta(item) {
 	const parts = [];
@@ -116,11 +116,7 @@ const MyCompetitionsScreen = ({ navigation }) => {
 	);
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	return (

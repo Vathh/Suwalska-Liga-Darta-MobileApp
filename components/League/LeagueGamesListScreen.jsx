@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Alert,
 	Pressable,
 	RefreshControl,
@@ -16,6 +15,7 @@ import {
 	openLeagueGameLobby,
 } from '../../helpers/leagueGamesApi';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 
 function statusLabel(game) {
 	if (game.status === 'finished') {
@@ -120,11 +120,7 @@ export default function LeagueGamesListScreen({ navigation }) {
 	}
 
 	if (loading) {
-		return (
-			<View style={styles.container}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	return (

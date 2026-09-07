@@ -1,10 +1,15 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import useAuth from '../hooks/useAuth';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import AnimatedTabIcon from '../components/Common/AnimatedTabIcon';
+import {
+	TabTransitionProvider,
+	withAnimatedTabScene,
+} from '../components/Common/AnimatedTabScene';
+import ScreenLoading from '../components/Common/ScreenLoading';
 import GameList from '../components/Game/GameList';
 import GameScoringScreen from '../components/Game/GameScoringScreen';
 import TournamentLogin from '../components/Tournament/TournamentLogin';
@@ -55,7 +60,9 @@ const headerOptions = {
 };
 
 function tabIcon(name) {
-	return ({ color, size }) => <Ionicons name={name} size={size} color={color} />;
+	return ({ color, size, focused }) => (
+		<AnimatedTabIcon name={name} color={color} size={size} focused={focused} />
+	);
 }
 
 const stackScreenOptions = {
@@ -155,9 +162,24 @@ function HiddenHomeStack() {
 	);
 }
 
+const GrajTab = withAnimatedTabScene(GrajStack, { skipInitial: true, tabName: 'Graj' });
+const RozgrywkiTab = withAnimatedTabScene(RozgrywkiStack, { tabName: 'Rozgrywki' });
+const ZnajomiTab = withAnimatedTabScene(ZnajomiStack, { tabName: 'Znajomi' });
+const ZaproszeniaTab = withAnimatedTabScene(InvitationsScreen, { tabName: 'Zaproszenia' });
+const KontoTab = withAnimatedTabScene(KontoStack, { tabName: 'Konto' });
+
 /** Dolny pasek: Graj / Rozgrywki / Znajomi / Zaproszenia / Konto (+ ukryty Home). */
 function UserMainTabs() {
+	return (
+		<TabTransitionProvider>
+			<UserMainTabsNavigator />
+		</TabTransitionProvider>
+	);
+}
+
+function UserMainTabsNavigator() {
 	const insets = useSafeAreaInsets();
+
 	return (
 		<Tab.Navigator
 			id="UserMainTabs"
@@ -187,7 +209,7 @@ function UserMainTabs() {
 			/>
 			<Tab.Screen
 				name="Graj"
-				component={GrajStack}
+				component={GrajTab}
 				options={{
 					tabBarLabel: 'Graj',
 					tabBarIcon: tabIcon('play-circle-outline'),
@@ -195,7 +217,7 @@ function UserMainTabs() {
 			/>
 			<Tab.Screen
 				name="Rozgrywki"
-				component={RozgrywkiStack}
+				component={RozgrywkiTab}
 				options={{
 					tabBarLabel: 'Rozgrywki',
 					tabBarIcon: tabIcon('trophy-outline'),
@@ -203,7 +225,7 @@ function UserMainTabs() {
 			/>
 			<Tab.Screen
 				name="Znajomi"
-				component={ZnajomiStack}
+				component={ZnajomiTab}
 				options={{
 					tabBarLabel: 'Znajomi',
 					tabBarIcon: tabIcon('people-outline'),
@@ -211,7 +233,7 @@ function UserMainTabs() {
 			/>
 			<Tab.Screen
 				name="Zaproszenia"
-				component={InvitationsScreen}
+				component={ZaproszeniaTab}
 				options={{
 					...headerOptions,
 					headerShown: true,
@@ -223,7 +245,7 @@ function UserMainTabs() {
 			/>
 			<Tab.Screen
 				name="Konto"
-				component={KontoStack}
+				component={KontoTab}
 				options={{
 					tabBarLabel: 'Konto',
 					tabBarIcon: tabIcon('person-outline'),
@@ -240,11 +262,7 @@ const Screens = () => {
 	const paddedContent = { backgroundColor: colors.bg, paddingBottom: bottomPad };
 
 	if (authLoading) {
-		return (
-			<View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	// Niezalogowany: Home = widok gry (bez dolnego paska)

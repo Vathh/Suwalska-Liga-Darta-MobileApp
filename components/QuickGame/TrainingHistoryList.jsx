@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from '../../helpers/trainingHistory/buildTrainingGameRecord';
 import { loadTrainingHistory } from '../../helpers/trainingHistory/persistTrainingHistory';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 
 const TrainingHistoryList = ({ navigation }) => {
 	const [games, setGames] = useState([]);
@@ -35,15 +35,17 @@ const TrainingHistoryList = ({ navigation }) => {
 		}, []),
 	);
 
+	if (loading) {
+		return <ScreenLoading />;
+	}
+
 	return (
 		<ScrollView
 			style={styles.scroll}
 			contentContainerStyle={styles.container}
 		>
 			<Text style={styles.title}>Historia treningów</Text>
-			{loading ? (
-				<ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
-			) : games.length === 0 ? (
+			{games.length === 0 ? (
 				<View style={styles.emptyBox}>
 					<Text style={styles.emptyText}>
 						Brak zapisanych treningów. Zagraj mecz treningowy, a wynik pojawi

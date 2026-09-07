@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-	ActivityIndicator,
 	Alert,
 	Pressable,
 	StyleSheet,
@@ -9,6 +8,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import useAuth from '../../hooks/useAuth';
+import ScreenLoading from '../Common/ScreenLoading';
 import {
 	acceptLeagueGameLobby,
 	cancelLeagueGameLobby,
@@ -98,11 +98,7 @@ export default function LeagueGameLobby({ navigation, route }) {
 	};
 
 	if (!game) {
-		return (
-			<View style={styles.container}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	return (

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import useAuth from '../../hooks/useAuth';
+import ScreenLoading from '../Common/ScreenLoading';
 import {
   fetchFriends as fetchFriendsRequest,
   fetchSentFriendInvitations,
@@ -166,11 +167,7 @@ const FriendsScreen = ({ navigation }) => {
   }
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
+    return <ScreenLoading />;
   }
 
   const renderListTab = () => (
@@ -343,6 +340,12 @@ const FriendsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  centered: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   content: { padding: 24, paddingBottom: 40 },
   tabs: {
     flexDirection: 'row',

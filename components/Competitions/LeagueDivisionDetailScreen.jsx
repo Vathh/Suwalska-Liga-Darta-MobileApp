@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	RefreshControl,
 	ScrollView,
@@ -16,6 +15,7 @@ import DetailHeader from './DetailHeader';
 import CompetitionTable from './CompetitionTable';
 import CompetitionTabs from './CompetitionTabs';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 
 function standingsColumns(allowsDraws) {
 	const columns = [
@@ -132,11 +132,7 @@ const LeagueDivisionDetailScreen = ({ navigation, route }) => {
 	);
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	const league = data?.league;

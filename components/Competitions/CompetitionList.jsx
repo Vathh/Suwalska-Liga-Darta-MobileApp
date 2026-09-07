@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-	ActivityIndicator,
 	Pressable,
 	RefreshControl,
 	ScrollView,
@@ -12,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import useAuth from '../../hooks/useAuth';
 import { fetchCompetitionPage } from '../../helpers/competitionsApi';
 import { colors } from '../../theme/colors';
+import ScreenLoading from '../Common/ScreenLoading';
 import { STATUS_STYLES } from './DetailHeader';
 
 /**
@@ -99,11 +99,7 @@ const CompetitionList = ({
 	};
 
 	if (loading) {
-		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={colors.accent} />
-			</View>
-		);
+		return <ScreenLoading />;
 	}
 
 	return (
